@@ -67,7 +67,11 @@ Por tramo de sensor: número de cámaras cercanas (`n_camaras`) vs. cambio en la
 
 Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, ranking de corredores, tendencia anual, mapa de calor corredor×año, gráfico de efecto (forest plot), dispersión de exposición a cámaras y velocidad, barras de gravedad por franja horaria y un panel de calidad de datos. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
 
-## 9. Cómo correr todo de nuevo
+## 9. Diseño visual
+
+El tablero sigue el mismo sistema visual del repositorio original `cameras-salvavidas` (tipografía, paneles de vidrio esmerilado, mapa fijo con historia que se desliza, explorador con zoom). Se adapta al nivel de análisis de este proyecto: por corredor, no por cruce individual, porque la vinculación siniestro–cámara aquí es por coincidencia de texto en la dirección y no por geocodificación punto a punto.
+
+## 10. Cómo correr todo de nuevo
 
 ```
 python3 -m venv .venv
@@ -77,7 +81,7 @@ python3 -m venv .venv
 
 Las rutas a las carpetas crudas se configuran en `scripts/config.py` (con valores por defecto en `~/Downloads`), o por variables de entorno — ver `scripts/README.md`. `data/clean/` (las tablas intermedias) no se versiona — se regenera corriendo el pipeline; solo los `data/*.json` y `data/tramos.geojson` que consume el tablero quedan en el repositorio.
 
-## 10. Limitaciones
+## 11. Limitaciones
 
 - El vínculo entre un siniestro y un corredor con cámara es una coincidencia de texto entre la dirección y el nombre del corredor, no una geocodificación exacta. Por eso el ranking y el mapa de calor trabajan a nivel de **corredor**, no de intersección individual.
 - El grupo de "tratamiento" del modelo de diferencias en diferencias es, por la misma razón, un conjunto de corredores con cámara, no un radio físico medido en metros para cada siniestro salvo en 2022 (único año con coordenadas reales).
