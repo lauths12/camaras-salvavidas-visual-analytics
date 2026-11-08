@@ -134,9 +134,22 @@ def construir_tendencia(df):
     print("tendencia:", {k: len(v) for k, v in series.items()})
 
 
+CORREDOR_CONTROL = "Resto de la ciudad (control)"
+
+
 def cargar_sitio_a_corredor():
     sitios = pd.read_csv(CLEAN_DIR / "sitios.csv")
     return dict(zip(sitios["sitio"], sitios["corredor"]))
+
+
+def con_corredor(df):
+    sitio_a_corredor = cargar_sitio_a_corredor()
+    cerca = df[(df["grupo"] == "TRATAMIENTO") & df["sitio_cercano"].notna()].copy()
+    cerca["corredor"] = cerca["sitio_cercano"].map(sitio_a_corredor)
+    cerca = cerca[cerca["corredor"].notna()]
+    lejos = df[df["grupo"] == "CONTROL"].copy()
+    lejos["corredor"] = CORREDOR_CONTROL
+    return pd.concat([cerca, lejos], ignore_index=True)
 
 
 def construir_corredores_ranking(df):
@@ -144,13 +157,10 @@ def construir_corredores_ranking(df):
     despues = df[df["periodo"] == "4_DESPUES"]
     ciudad_cambio = 100 * (len(despues) - len(antes)) / max(len(antes), 1)
 
-    sitio_a_corredor = cargar_sitio_a_corredor()
-    cerca = df[(df["grupo"] == "TRATAMIENTO") & df["sitio_cercano"].notna()].copy()
-    cerca["corredor"] = cerca["sitio_cercano"].map(sitio_a_corredor)
-    cerca = cerca[cerca["corredor"].notna()]
+    con_corr = con_corredor(df)
 
     filas = []
-    for corredor, grupo_df in cerca.groupby("corredor"):
+    for corredor, grupo_df in con_corr.groupby("corredor"):
         a = (grupo_df["periodo"] == "1_ANTES").sum()
         d = (grupo_df["periodo"] == "4_DESPUES").sum()
         cambio = None if a == 0 else round(100 * (d - a) / a, 1)
@@ -160,26 +170,79 @@ def construir_corredores_ranking(df):
             "despues": int(d),
             "cambio_pct": cambio,
             "cambio_pct_ciudad": round(ciudad_cambio, 1),
+            "es_control": corredor == CORREDOR_CONTROL,
         })
-    filas.sort(key=lambda r: (r["cambio_pct"] is None, r["cambio_pct"]))
+    filas.sort(key=lambda r: (r["es_control"], r["cambio_pct"] is None, r["cambio_pct"]))
     with open(DATA_DIR / "corredores_ranking.json", "w", encoding="utf-8") as f:
         json.dump(filas, f, ensure_ascii=False)
     print("corredores_ranking filas:", len(filas))
 
 
 def construir_heatmap(df):
-    sitio_a_corredor = cargar_sitio_a_corredor()
-    cerca = df[(df["grupo"] == "TRATAMIENTO") & df["sitio_cercano"].notna()].copy()
-    cerca["corredor"] = cerca["sitio_cercano"].map(sitio_a_corredor)
-    cerca = cerca[cerca["corredor"].notna()]
-    tabla = cerca.groupby(["corredor", "anio"]).size().reset_index(name="n")
+    con_corr = con_corredor(df)
+    tabla = con_corr.groupby(["corredor", "anio"]).size().reset_index(name="n")
     filas = [
-        {"corredor": r["corredor"], "anio": int(r["anio"]), "n": int(r["n"])}
+        {"corredor": r["corredor"], "anio": int(r["anio"]), "n": int(r["n"]), "es_control": r["corredor"] == CORREDOR_CONTROL}
         for _, r in tabla.iterrows()
     ]
     with open(DATA_DIR / "heatmap.json", "w", encoding="utf-8") as f:
         json.dump(filas, f, ensure_ascii=False)
     print("heatmap filas:", len(filas))
+
+
+def tipo_de_clase(clase):
+    if pd.isna(clase):
+        return "SIN CLASIFICAR"
+    texto = str(clase).strip()
+    if texto.isdigit():
+        return "SIN CLASIFICAR"
+    normal = texto.lower()
+    if normal in ("vehiculo", "vehículo"):
+        return "VEHICULO"
+    if normal == "choque":
+        return "CHOQUE"
+    if normal == "atropello":
+        return "ATROPELLO"
+    if normal == "volcamiento":
+        return "VOLCAMIENTO"
+    return "OTROS"
+
+
+def construir_por_tipo(df):
+    sub = df.copy()
+    sub["tipo"] = sub["clase"].apply(tipo_de_clase)
+    con_corr = con_corredor(sub)
+
+    corredores = []
+    for (corredor, tipo), grupo_df in con_corr.groupby(["corredor", "tipo"]):
+        a = (grupo_df["periodo"] == "1_ANTES").sum()
+        d = (grupo_df["periodo"] == "4_DESPUES").sum()
+        cambio = None if a == 0 else round(100 * (d - a) / a, 1)
+        corredores.append({
+            "corredor": corredor,
+            "tipo": tipo,
+            "antes": int(a),
+            "despues": int(d),
+            "cambio_pct": cambio,
+            "es_control": corredor == CORREDOR_CONTROL,
+        })
+
+    tabla = con_corr.groupby(["corredor", "anio", "tipo"]).size().reset_index(name="n")
+    heatmap = [
+        {
+            "corredor": r["corredor"],
+            "anio": int(r["anio"]),
+            "tipo": r["tipo"],
+            "n": int(r["n"]),
+            "es_control": r["corredor"] == CORREDOR_CONTROL,
+        }
+        for _, r in tabla.iterrows()
+    ]
+
+    tipos = sorted(sub["tipo"].unique().tolist())
+    with open(DATA_DIR / "por_tipo.json", "w", encoding="utf-8") as f:
+        json.dump({"tipos": tipos, "corredores": corredores, "heatmap": heatmap}, f, ensure_ascii=False)
+    print("por_tipo tipos:", tipos, "filas corredores:", len(corredores), "filas heatmap:", len(heatmap))
 
 
 def construir_gravedad_franja(df):
@@ -225,6 +288,7 @@ def main():
     construir_tendencia(df)
     construir_corredores_ranking(df)
     construir_heatmap(df)
+    construir_por_tipo(df)
     construir_gravedad_franja(df)
     construir_calidad()
 

@@ -70,7 +70,7 @@ con efectos fijos por mes (para controlar estacionalidad) y una interacción tra
 
 Resultado a 250 m: razón de tasa 1,040 (IC95% 0,995–1,086) para todos los siniestros — no significativo, cruza 1. Con heridos 1,040 (0,964–1,121), con muertos 1,083 (0,686–1,390), solo daños 1,057 (1,000–1,119). A 150 m da 1,110 (1,050–1,182, sí significativo) y a 500 m 1,042 (1,013–1,075). Son números reales de esta reconstrucción, no los del repo original ni los del corredor por texto que se usaba antes en este mismo repo — cambia el resultado según qué tan preciso es el vínculo siniestro↔cámara, y ninguno de los tres debería leerse como la cifra "correcta" sin más contexto.
 
-La misma función genera además: `data/tendencia.json` (índice anual base 100, tratamiento vs. control por distancia), `data/corredores_ranking.json` y `data/heatmap.json` (agrupan por el corredor del sitio más cercano entre los siniestros a 250 m o menos, usando `sitio_cercano`, no coincidencia de texto), `data/gravedad_franja.json` (% de siniestros por gravedad dentro de cada franja horaria) y `data/calidad.json` (cobertura real/geocodificada y % dentro de 250 m por año).
+La misma función genera además: `data/tendencia.json` (índice anual base 100, tratamiento vs. control por distancia), `data/corredores_ranking.json` y `data/heatmap.json` (agrupan por el corredor del sitio más cercano entre los siniestros a 250 m o menos, usando `sitio_cercano`, no coincidencia de texto; ambos incluyen una fila/columna `"Resto de la ciudad (control)"` con `es_control: true` para poder comparar contra el control en el mismo gráfico), `data/gravedad_franja.json` (% de siniestros por gravedad dentro de cada franja horaria), `data/calidad.json` (cobertura real/geocodificada y % dentro de 250 m por año) y `data/por_tipo.json` (lo mismo que `corredores_ranking.json`/`heatmap.json`, pero separado por tipo de siniestro — ver sección 13).
 
 ## 8. Exposición a cámaras y velocidad (`scripts/build_exposicion.py`)
 
@@ -78,7 +78,9 @@ Por tramo de sensor: número de cámaras cercanas (`n_camaras`) vs. cambio en la
 
 ## 9. Tablero (`index.html`, `css/styles.css`, `js/app.js`)
 
-Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, ranking de corredores, tendencia anual, mapa de calor corredor×año, gráfico de efecto (forest plot), dispersión de exposición a cámaras y velocidad, barras de gravedad por franja horaria. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
+Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, tendencia anual, gravedad por franja horaria, cuándo se instalaron las cámaras, mapa de calor corredor×año, gráfico de efecto (forest plot), explorador con ranking de corredores, dispersión de exposición a cámaras y velocidad. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
+
+El orden de las secciones va de lo general a lo específico (feedback de clase, sección 13): primero la historia que da el contexto, después patrones de toda la ciudad (tendencia, gravedad, instalación), después el detalle por corredor (mapa de calor, efecto estimado) y por último lo más granular e interactivo (explorador con filtros, velocidad por tramo).
 
 ## 10. Diseño visual
 
@@ -100,3 +102,14 @@ Las rutas a las carpetas crudas se configuran en `scripts/config.py` (con valore
 - `corredores_ranking.json` y `heatmap.json` agrupan por corredor (a través del sitio más cercano), no por cruce o punto individual, aunque la clasificación de cercanía (250 m) ya es por distancia real/geocodificada, igual que el modelo de efecto.
 - 2,8% de los siniestros 2018–2021 no tienen ninguna vía de referencia en 2022 y quedan sin coordenada ni distancia a cámara.
 - La velocidad es velocidad de recorrido entre sensores Bitcarrier, no velocidad puntual medida por la cámara.
+- **La columna `clase` (tipo de siniestro) cambia de taxonomía según el año**: 2018 usa `Choque`/`Atropello`/`Volcamiento`/`Caída de ocupante`/`Otro`; 2019 y 2022 usan otro vocabulario (`Vehiculo`/`Vehículo`/`Objeto Fijo`/`Semoviente`/`Tren`) que no incluye `Choque` ni `Atropello` como tales; 2020 y 2021 traen solo un código numérico sin diccionario de `clase` disponible (se agrupan como "sin clasificar"). Por eso filtrar el tablero por tipos como "Atropello", "Choque" o "Volcamiento" deja el periodo "después" (2021–2022) prácticamente vacío — no es que esos siniestros hayan desaparecido, es que ese año no se etiquetan así. El tablero muestra un aviso cuando esto pasa en vez de un porcentaje engañoso.
+
+## 13. Cambios por retroalimentación de clase
+
+Después de una presentación en clase se recibió retroalimentación puntual, que se aplicó así:
+
+- **Orden general → específico**: se reordenaron las secciones (ver sección 9) para empezar por los patrones generales de toda la ciudad y terminar en lo más granular e interactivo.
+- **Degradados en los mapas**: la densidad de cámaras por km y el cambio por corredor/sitio ya no se pintan en 2–3 colores discretos; usan una escala continua (`d3.scaleSequential`/`d3.scaleLinear` interpolando entre los colores de la paleta) en el mapa de portada, el mapa de la historia y el explorador, con una leyenda en forma de barra de degradado.
+- **Tiempo de instalación de las cámaras**: nueva sección con una gráfica de escalones (cámaras activas acumuladas en el tiempo), construida desde `fecha_activacion` en `data/camaras.json`; no requirió un archivo de datos nuevo.
+- **Zonas de control en todas las visualizaciones**: `corredores_ranking.json` y `heatmap.json` (sección 7) ahora incluyen una fila `"Resto de la ciudad (control)"`; el mapa de calor la dibuja aparte, con estilo distinto, debajo de los corredores; el gráfico de embudo del explorador ya traía el control implícito en el eje (0% = igual que la ciudad) y ahora además dibuja la línea punteada con la etiqueta "nivel de la ciudad" explícitamente.
+- **Filtro por tipo de siniestro**: nuevo selector en el explorador, alimentado por `data/por_tipo.json` (`scripts/build_efecto.py`, función `construir_por_tipo`). Se eligió `clase` (choque/atropello/volcamiento/vehículo/otros/sin clasificar) en vez de `gravedad` porque `gravedad` ya se usa en el resto del tablero (modelo de efecto, gravedad por franja) y `clase` no se había explotado todavía. El filtro expuso el problema de taxonomía de `clase` descrito arriba; en vez de ocultarlo, el tablero avisa cuando la comparación antes/después no es confiable para el tipo elegido.

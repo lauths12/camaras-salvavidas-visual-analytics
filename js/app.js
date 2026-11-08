@@ -19,33 +19,46 @@ function tipShow(html, ev) {
 }
 const tipHide = () => tipEl.style('opacity', 0);
 
-let DATA, sitioById, rankByCorredor, ratioCiudad, maxDiff;
+let DATA, sitioById, rankByCorredor, ratioCiudad, maxDiff, maxDens, colorDens, colorPct;
 
 Promise.all([
   d3.json('data/sitios.json'), d3.json('data/camaras.json'), d3.json('data/tramos.geojson'),
   d3.json('data/corredores_ranking.json'), d3.json('data/tendencia.json'),
   d3.json('data/heatmap.json'), d3.json('data/efecto_promedio.json'),
-  d3.json('data/exposicion_camaras.json'), d3.json('data/gravedad_franja.json'), d3.json('data/calidad.json')
-]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad]) => {
-  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad };
+  d3.json('data/exposicion_camaras.json'), d3.json('data/gravedad_franja.json'), d3.json('data/calidad.json'),
+  d3.json('data/por_tipo.json')
+]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad, porTipo]) => {
+  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad, porTipo };
   sitioById = new Map(sitios.map(s => [s.sitio, s]));
-  rankByCorredor = new Map(ranking.map(r => [r.corredor, r]));
-  ratioCiudad = 1 + (ranking[0] ? ranking[0].cambio_pct_ciudad / 100 : 1);
-  maxDiff = d3.max(ranking, r => Math.abs(r.despues - r.antes * ratioCiudad)) || 1;
   tramos.features.forEach(f => { f.properties.camaras_km = f.properties.distancia_m > 0 ? f.properties.n_camaras / (f.properties.distancia_m / 1000) : 0; });
+  setRanking(ranking);
+  maxDens = d3.max(tramos.features, f => f.properties.camaras_km) || 1;
+  colorDens = d3.scaleSequential(t => d3.interpolateRgb(C('--acc3'), C('--acc'))(t)).domain([0, maxDens]);
+  colorPct = d3.scaleLinear().domain([-100, 0, 100]).range([C('--neg'), C('--mid'), C('--pos')]).clamp(true);
   drawHero();
   initStory();
-  initExplorer();
-  drawHeat();
   drawTrend();
-  drawEffect();
-  drawDose();
   drawVelGrav();
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(); drawEffect(); drawDose(); drawHeat(); drawRank(); drawSide(); }, 200); });
+  drawInstalacion();
+  drawHeat(heat);
+  drawEffect();
+  initExplorer();
+  drawDose();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(); drawEffect(); drawDose(); drawHeat(E.tipo ? DATA.porTipo.heatmap.filter(r => r.tipo === E.tipo) : DATA.heat); drawRank(); drawSide(); drawInstalacion(); }, 200); });
 }).catch(err => {
   document.body.insertAdjacentHTML('afterbegin',
     `<p style="padding:16px;color:#f05d5d">No se pudieron cargar los datos (${err.message}). Sirve la carpeta con <code>python3 -m http.server</code>; no abras el archivo directamente.</p>`);
 });
+
+let currentRanking;
+function setRanking(ranking) {
+  currentRanking = ranking;
+  const control = ranking.find(r => r.es_control);
+  const porCorredor = ranking.filter(r => !r.es_control);
+  rankByCorredor = new Map(porCorredor.map(r => [r.corredor, r]));
+  ratioCiudad = control && control.antes ? control.despues / control.antes : 1;
+  maxDiff = d3.max(porCorredor, r => Math.abs(r.despues - r.antes * ratioCiudad)) || 1;
+}
 
 function statsDe(row) {
   if (!row) return { diff: 0, pct: null, z: 0 };
@@ -61,6 +74,10 @@ function corredorDeTramo(f) {
   for (const id of ids) { const s = sitioById.get(id); if (s) return s.corredor; }
   return null;
 }
+function tipoLabel(t) {
+  const L = { CHOQUE: 'Choque', VEHICULO: 'Vehículo', ATROPELLO: 'Atropello', VOLCAMIENTO: 'Volcamiento', OTROS: 'Otros', 'SIN CLASIFICAR': 'Sin clasificar' };
+  return L[t] || t;
+}
 
 function drawHero() {
   const cv = document.getElementById('heroRoads'), box = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
@@ -72,7 +89,7 @@ function drawHero() {
   ctx.clearRect(0, 0, w, h); ctx.lineCap = 'round';
   DATA.tramos.features.forEach(f => {
     ctx.beginPath(); p(f);
-    if (f.properties.con_camara) { ctx.strokeStyle = C('--acc'); ctx.globalAlpha = .9; ctx.lineWidth = 1.8 + f.properties.camaras_km * 3; }
+    if (f.properties.con_camara) { ctx.strokeStyle = colorDens(f.properties.camaras_km); ctx.globalAlpha = .9; ctx.lineWidth = 1.8 + f.properties.camaras_km * 3; }
     else { ctx.strokeStyle = C('--road2'); ctx.globalAlpha = 1; ctx.lineWidth = 1; }
     ctx.stroke();
   });
@@ -111,14 +128,13 @@ function createMap(svgId, opt) {
     .on('mousemove', (ev, d) => { if (st.lay === 'dens') tipShow(`<b>Tramo ${d.properties.tid}</b><br>${pretty(d.properties.via)} entre ${pretty(d.properties.entre)}<br><b>${nf(d.properties.camaras_km, 2)} cámaras por km</b>`, ev); })
     .on('mouseleave', tipHide);
 
-  const qCol = k => k < 0.25 ? C('--acc3') : k < 0.6 ? C('--acc2') : C('--acc');
   const rad = d3.scaleSqrt().domain([0, maxDiff]).range([3.5, 16]);
 
   function render(next, animate = true) {
     st = Object.assign({ lay: 'sin', corr: '' }, next);
     const D = dur(animate ? 600 : 0);
     camSel.transition().duration(D)
-      .attr('stroke', d => st.lay === 'dens' ? qCol(d.properties.camaras_km) : (st.corr && corredorDeTramo(d) === st.corr) ? C('--acc') : C('--acc3'))
+      .attr('stroke', d => st.lay === 'dens' ? colorDens(d.properties.camaras_km) : (st.corr && corredorDeTramo(d) === st.corr) ? C('--acc') : C('--acc3'))
       .attr('stroke-width', d => st.lay === 'dens' ? 2 + d.properties.camaras_km * 6 : (st.corr && corredorDeTramo(d) === st.corr) ? 3.2 : 2)
       .attr('opacity', d => !st.corr || corredorDeTramo(d) === st.corr ? 1 : 0.25);
     drawDots(D);
@@ -126,6 +142,7 @@ function createMap(svgId, opt) {
   }
 
   function pass(s) { return !st.corr || s.corredor === st.corr; }
+  function muted(s, sin) { return !pass(s) || (sin && statsDe(rankByCorredor.get(s.corredor)).pct == null); }
 
   function drawDots(D) {
     const sin = st.lay === 'sin';
@@ -137,11 +154,11 @@ function createMap(svgId, opt) {
       .on('mouseleave', tipHide)
       .on('click', (ev, d) => { if (opt.onClickSite) opt.onClickSite(d); });
     c.transition().duration(D)
-      .attr('r', d => !pass(d) ? 2.5 : sin ? rad(Math.abs(statsDe(rankByCorredor.get(d.corredor)).diff)) : 4.5)
-      .attr('fill', d => !pass(d) ? C('--road2') : sin ? C('--' + clsDe(rankByCorredor.get(d.corredor))) : '#fff')
-      .attr('stroke', d => !pass(d) ? 'none' : sin ? '#fff' : C('--ink'))
+      .attr('r', d => muted(d, sin) ? 2.5 : sin ? rad(Math.abs(statsDe(rankByCorredor.get(d.corredor)).diff)) : 4.5)
+      .attr('fill', d => muted(d, sin) ? C('--road2') : sin ? colorPct(statsDe(rankByCorredor.get(d.corredor)).pct) : '#fff')
+      .attr('stroke', d => muted(d, sin) ? 'none' : sin ? '#fff' : C('--ink'))
       .attr('stroke-width', d => sin ? 1.5 : 1.6)
-      .attr('fill-opacity', d => sin && clsDe(rankByCorredor.get(d.corredor)) === 'mid' ? 0.85 : 1);
+      .attr('fill-opacity', d => sin && !muted(d, sin) && clsDe(rankByCorredor.get(d.corredor)) === 'mid' ? 0.85 : 1);
   }
 
   function sitioHTML(s) {
@@ -168,13 +185,14 @@ function initStory() {
   const leg = d3.select('#storyLegend');
   const L = {
     base: '<span><i class="l" style="background:var(--acc)"></i>Tramo con cámara</span><span><i class="c" style="border:1.6px solid var(--ink)"></i>Cruce con cámaras</span>',
-    sin: '<span><i class="c" style="background:var(--neg)"></i>Disminuyó más de lo esperado</span><span><i class="c" style="background:var(--mid)"></i>Sin cambio significativo</span><span><i class="c" style="background:var(--pos)"></i>Aumentó más de lo esperado</span>'
+    dens: `<div class="leyenda-grad"><span>pocas cámaras/km</span><span class="barra" style="background:linear-gradient(90deg,${C('--acc3')},${C('--acc')})"></span><span>muchas</span></div><span><i class="l" style="background:var(--road2)"></i>Sin cámara (control)</span>`,
+    sin: `<div class="leyenda-grad"><span>disminuyó</span><span class="barra" style="background:linear-gradient(90deg,${C('--neg')},${C('--mid')},${C('--pos')})"></span><span>aumentó</span></div>`
   };
-  const top = DATA.ranking.filter(r => r.cambio_pct !== null).sort((a, b) => a.cambio_pct - b.cambio_pct).slice(0, 3);
+  const top = DATA.ranking.filter(r => !r.es_control && r.cambio_pct !== null).sort((a, b) => a.cambio_pct - b.cambio_pct).slice(0, 3);
   d3.select('#topCorredores').text(top.map(r => pretty(r.corredor)).join(', '));
   const reduccion = (DATA.efecto.TODAS.razon_tasa - 1) * 100;
   d3.select('#efectoTexto').text(fmt(reduccion) + ' %');
-  const scenes = [[{ lay: 'base' }, L.base], [{ lay: 'base' }, L.base], [{ lay: 'dens' }, L.base], [{ lay: 'sin' }, L.sin], [{ lay: 'sin' }, L.sin]];
+  const scenes = [[{ lay: 'base' }, L.base], [{ lay: 'base' }, L.base], [{ lay: 'dens' }, L.dens], [{ lay: 'sin' }, L.sin], [{ lay: 'sin' }, L.sin]];
   let cur = -1;
   const go = i => { if (i === cur) return; cur = i; map.render(scenes[i][0], true); leg.html(scenes[i][1]); };
   map.render(scenes[0][0], false); leg.html(scenes[0][1]);
@@ -185,7 +203,7 @@ function initStory() {
   steps.each(function () { io.observe(this); });
 }
 
-const E = { lay: 'sin', corr: '' };
+const E = { lay: 'sin', corr: '', tipo: '' };
 let EX;
 function initExplorer() {
   EX = createMap('#expMap', {
@@ -199,19 +217,25 @@ function initExplorer() {
   const corrs = [...new Set(DATA.sitios.map(s => s.corredor))].sort();
   d3.select('#fcorr').selectAll('option').data([''].concat(corrs)).join('option').attr('value', d => d).text(d => d ? pretty(d) : 'Toda la ciudad');
   d3.select('#fcorr').on('change', function () { E.corr = this.value; updateExplorer(); });
-  d3.select('#fclear').on('click', () => { E.corr = ''; d3.select('#fcorr').property('value', ''); updateExplorer(); });
+  d3.select('#ftipo').selectAll('option').data([''].concat(DATA.porTipo.tipos)).join('option').attr('value', d => d).text(d => d ? tipoLabel(d) : 'Todos');
+  d3.select('#ftipo').on('change', function () { E.tipo = this.value; aplicarTipo(); updateExplorer(); });
+  d3.select('#fclear').on('click', () => { E.corr = ''; E.tipo = ''; d3.select('#fcorr').property('value', ''); d3.select('#ftipo').property('value', ''); aplicarTipo(); updateExplorer(); });
   d3.select('#zin').on('click', () => EX.zoomBy(1.6));
   d3.select('#zout').on('click', () => EX.zoomBy(1 / 1.6));
   d3.select('#zreset').on('click', () => { E.corr = ''; d3.select('#fcorr').property('value', ''); updateExplorer(); });
   updateExplorer(false);
 }
+function aplicarTipo() {
+  setRanking(E.tipo ? DATA.porTipo.corredores.filter(r => r.tipo === E.tipo) : DATA.ranking);
+  drawHeat(E.tipo ? DATA.porTipo.heatmap.filter(r => r.tipo === E.tipo) : DATA.heat);
+}
 function updateFilterUI() {
-  d3.select('#fclear').property('hidden', !E.corr);
+  d3.select('#fclear').property('hidden', !E.corr && !E.tipo);
 }
 function updateExplorer(animate = true) {
   d3.select('#expLegend').html(E.lay === 'dens'
-    ? '<div class="lg-g"><span class="lg-k">Cámaras por km</span><span><i class="l" style="background:var(--acc3)"></i>menos de 0,25</span><span><i class="l" style="background:var(--acc2);height:5px"></i>0,25 a 0,6</span><span><i class="l" style="background:var(--acc);height:7px"></i>más de 0,6</span></div>'
-    : '<div class="lg-g"><span class="lg-k">Color</span><span><i class="c" style="background:var(--neg)"></i>Disminuyó</span><span><i class="c" style="background:var(--mid)"></i>Sin cambio</span><span><i class="c" style="background:var(--pos)"></i>Aumentó</span></div>');
+    ? `<div class="lg-g"><span class="lg-k">Cámaras/km</span><div class="leyenda-grad"><span>pocas</span><span class="barra" style="background:linear-gradient(90deg,${C('--acc3')},${C('--acc')})"></span><span>muchas</span></div></div>`
+    : `<div class="lg-g"><span class="lg-k">Cambio</span><div class="leyenda-grad"><span>disminuyó</span><span class="barra" style="background:linear-gradient(90deg,${C('--neg')},${C('--mid')},${C('--pos')})"></span><span>aumentó</span></div></div>`);
   EX.render(Object.assign({}, E), animate);
 }
 function drawRank() {
@@ -219,9 +243,14 @@ function drawRank() {
   d3.select('#sideT').text(E.lay === 'sin' ? 'Significancia del cambio' : 'Tramos por cámaras/km');
   d3.select('#sideSub').property('hidden', E.lay !== 'sin');
   svg.style('display', E.lay === 'sin' ? null : 'none'); if (E.lay !== 'sin') return;
-  const pts = DATA.ranking.map(r => ({ r, a: r.antes, st: statsDe(r) })).filter(p => p.a > 0 && p.st.pct != null);
+  const pts = currentRanking.filter(r => !r.es_control).map(r => ({ r, a: r.antes, st: statsDe(r) })).filter(p => p.a > 0 && p.st.pct != null);
   const Wr = 460, m = { l: 46, r: 14, t: 10, b: 40 }, Hr = 320;
   svg.attr('viewBox', `0 0 ${Wr} ${Hr}`); svg.selectAll('*').remove();
+  if (!pts.length || !ratioCiudad) {
+    svg.append('text').attr('class', 'lab').attr('x', Wr / 2).attr('y', Hr / 2).attr('text-anchor', 'middle')
+      .text('No hay suficientes datos de este tipo después de 2020 para comparar.');
+    return;
+  }
   const xmax = d3.max(pts, p => p.a) * 1.08;
   const x = d3.scaleLinear().domain([0, xmax]).range([m.l, Wr - m.r]);
   const y = d3.scaleLinear().domain([-100, 150]).range([Hr - m.b, m.t]).clamp(true);
@@ -234,11 +263,13 @@ function drawRank() {
     .selectAll('text').attr('class', 'ax');
   svg.append('g').attr('transform', `translate(0,${Hr - m.b})`).call(d3.axisBottom(x).ticks(5).tickSize(0).tickPadding(8))
     .call(g => g.select('.domain').remove()).selectAll('text').attr('class', 'ax');
+  svg.append('line').attr('x1', m.l).attr('x2', Wr - m.r).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', C('--ctrl')).attr('stroke-dasharray', '4 4');
+  svg.append('text').attr('class', 'ax halo').attr('x', m.l).attr('y', y(0) - 8).text('nivel de la ciudad');
   svg.append('text').attr('class', 'ax').attr('x', Wr - m.r).attr('y', Hr - 6).attr('text-anchor', 'end').text('siniestros antes de las cámaras →');
   const g = svg.append('g');
   g.selectAll('circle').data(pts.sort((p, q) => Math.abs(q.st.diff) - Math.abs(p.st.diff)), p => p.r.corredor).join('circle')
     .attr('cx', p => x(p.a)).attr('cy', p => y(p.st.pct)).attr('r', 6.5)
-    .attr('fill', p => C('--' + clsDe(p.r))).attr('stroke', '#fff').attr('stroke-width', 1.5)
+    .attr('fill', p => colorPct(p.st.pct)).attr('stroke', '#fff').attr('stroke-width', 1.5)
     .attr('opacity', p => !E.corr || p.r.corredor === E.corr ? 1 : 0.2).style('cursor', 'pointer')
     .on('mousemove', (ev, p) => tipShow(`<b style="font-size:15px">${pretty(p.r.corredor)}</b><br>siniestros: antes <b>${nf(p.r.antes, 0)}</b> · después <b>${nf(p.r.despues, 0)}</b><br>cambio frente a lo esperado: <b>${fmt(p.st.pct)} %</b>`, ev))
     .on('mouseleave', tipHide)
@@ -257,10 +288,12 @@ function drawSide() {
 function drawSummary() {
   const el = d3.select('#fsum');
   if (E.lay !== 'sin') { el.html('Las avenidas más brillantes tienen más cámaras por kilómetro: ahí es donde la cámara pesa más en la velocidad del tramo.'); return; }
-  const rows = E.corr ? DATA.ranking.filter(r => r.corredor === E.corr) : DATA.ranking;
+  const base = currentRanking.filter(r => !r.es_control);
+  const rows = E.corr ? base.filter(r => r.corredor === E.corr) : base;
   if (!rows.length) { el.text('Este corredor no tiene suficientes siniestros cerca de una cámara para calcular un cambio.'); return; }
   const a = d3.sum(rows, r => r.antes), d = d3.sum(rows, r => r.despues);
-  el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.`);
+  const aviso = ratioCiudad ? '' : ' Este tipo casi no aparece así clasificado después de 2020 (cambio de taxonomía entre años, no un cambio real) — la comparación no es confiable.';
+  el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.${aviso}`);
 }
 
 function drawTrend() {
@@ -345,16 +378,19 @@ function drawDose() {
   d3.select('#doseNote').text(worst ? `El tramo con mayor caída de velocidad es el ${worst.tid} (${fmt(worst.delta_p85)} km/h), con ${nf(worst.ckm, 2)} cámaras por km. Son ${treat.length} tramos con cámara: es una pista, no una prueba.` : '');
 }
 
-function drawHeat() {
-  const H = DATA.heat, yrs = [...new Set(H.map(d => d.anio))].sort((a, b) => a - b);
-  const byCorr = d3.group(H, d => d.corredor);
+function drawHeat(rowsIn) {
+  const H = rowsIn || DATA.heat;
+  const corredorH = H.filter(d => !d.es_control), controlH = H.filter(d => d.es_control);
+  const yrs = [...new Set(H.map(d => d.anio))].sort((a, b) => a - b);
+  const byCorr = d3.group(corredorH, d => d.corredor);
   const rows = [...byCorr.entries()].map(([corredor, arr]) => {
     const v = yrs.map(y => (arr.find(d => d.anio === y) || { n: 0 }).n);
     return { corredor, v, tot: d3.sum(v) };
   }).sort((a, b) => b.tot - a.tot);
+  const controlV = yrs.map(y => (controlH.find(d => d.anio === y) || { n: 0 }).n);
   const wide = (document.getElementById('heat').clientWidth || 1100) > 700;
-  const rh = 26, cw = wide ? 74 : 46, L = wide ? 220 : 150, top = 70, Rb = wide ? 160 : 80;
-  const Wd = L + yrs.length * cw + 16 + Rb, Hd = top + rows.length * rh + 24;
+  const rh = 26, cw = wide ? 74 : 46, L = wide ? 220 : 150, top = 70, Rb = wide ? 160 : 80, gap = 10;
+  const Wd = L + yrs.length * cw + 16 + Rb, Hd = top + rows.length * rh + gap + rh + 24;
   const svg = d3.select('#heat').attr('viewBox', `0 0 ${Wd} ${Hd}`); svg.selectAll('*').remove();
   const mx = d3.max(rows, r => d3.max(r.v)) || 1;
   const col = d3.scaleSequential(t => d3.interpolateRgb('#f3effd', '#4b1fb8')(t)).domain([0, mx]);
@@ -382,6 +418,17 @@ function drawHeat() {
       .on('mouseleave', tipHide)
       .on('click', () => { E.corr = r.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); document.getElementById('explorar').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); });
   });
+  const yc = top + rows.length * rh + gap;
+  svg.append('line').attr('x1', 0).attr('x2', Wd).attr('y1', yc - gap / 2).attr('y2', yc - gap / 2).attr('stroke', C('--line'));
+  const rowC = g.append('g');
+  rowC.append('text').attr('class', 'lab').attr('x', L - 10).attr('y', yc + rh / 2 + 4).attr('text-anchor', 'end').style('font-style', 'italic').text('Resto de la ciudad (control)');
+  controlV.forEach((v, i) => {
+    rowC.append('rect').attr('x', x(i) + 1).attr('y', yc + 1).attr('width', cw - 2).attr('height', rh - 2).attr('fill', C('--bg2'));
+    rowC.append('text').attr('class', 'ax').attr('x', x(i) + cw / 2).attr('y', yc + rh / 2 + 4).attr('text-anchor', 'middle').text(nf(v, 0));
+  });
+  rowC.append('rect').attr('x', 0).attr('y', yc).attr('width', Wd).attr('height', rh).attr('fill', 'transparent')
+    .on('mousemove', ev => tipShow(`<b>Resto de la ciudad (control)</b><br>${yrs.map((yy, i) => `${yy}: <b>${nf(controlV[i], 0)}</b>`).join(' · ')}`, ev))
+    .on('mouseleave', tipHide);
 }
 
 function drawVelGrav() {
@@ -419,6 +466,34 @@ function drawVelGrav() {
     svg.selectAll('text.xl').data(GRAV, g => g[0]).join('text').attr('class', 'ax xl').attr('text-anchor', 'middle')
       .attr('x', g => x(g[0]) + x.bandwidth() / 2).attr('y', B + 18).text(g => g[0] === 'CON MUERTOS' ? 'Muertos' : g[0] === 'CON HERIDOS' ? 'Heridos' : 'Solo daños');
   });
+}
+
+function drawInstalacion() {
+  const fechas = DATA.camaras.map(c => c.fecha_activacion).filter(Boolean).sort();
+  const porFecha = d3.rollup(fechas, v => v.length, d => d);
+  const unicas = [...porFecha.keys()].sort();
+  let acum = 0;
+  const serie = unicas.map(f => { acum += porFecha.get(f); return { fecha: new Date(f), n: acum }; });
+  const svg = d3.select('#instalacion'), Wd = 1100, Hd = 260, m = { l: 46, r: 30, t: 20, b: 34 };
+  svg.attr('viewBox', `0 0 ${Wd} ${Hd}`); svg.selectAll('*').remove();
+  const x = d3.scaleTime().domain(d3.extent(serie, d => d.fecha)).range([m.l, Wd - m.r]);
+  const y = d3.scaleLinear().domain([0, d3.max(serie, d => d.n)]).nice().range([Hd - m.b, m.t]);
+  svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(Wd - m.l - m.r)))
+    .call(a => a.select('.domain').remove()).call(a => a.selectAll('.tick line').attr('stroke', C('--line')))
+    .selectAll('text').attr('class', 'ax');
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const fmtMes = d => d.getDate() === 1 && d.getMonth() === 0 ? String(d.getFullYear()) : `${meses[d.getMonth()]} ${d.getFullYear()}`;
+  svg.append('g').attr('transform', `translate(0,${Hd - m.b})`).call(d3.axisBottom(x).ticks(5).tickSize(0).tickPadding(10).tickFormat(fmtMes))
+    .call(a => a.select('.domain').remove()).selectAll('text').attr('class', 'ax');
+  const area = d3.area().curve(d3.curveStepAfter).x(d => x(d.fecha)).y0(Hd - m.b).y1(d => y(d.n));
+  const line = d3.line().curve(d3.curveStepAfter).x(d => x(d.fecha)).y(d => y(d.n));
+  svg.append('path').datum(serie).attr('d', area).attr('fill', C('--acc3')).attr('opacity', 0.55);
+  svg.append('path').datum(serie).attr('d', line).attr('fill', 'none').attr('stroke', C('--acc')).attr('stroke-width', 2.5);
+  svg.append('g').selectAll('circle').data(serie).join('circle').attr('cx', d => x(d.fecha)).attr('cy', d => y(d.n)).attr('r', 3.5)
+    .attr('fill', C('--acc')).attr('stroke', '#fff').attr('stroke-width', 1.5)
+    .on('mousemove', (ev, d) => tipShow(`<b>${d.fecha.toISOString().slice(0, 10)}</b><br>${d.n} cámaras activas acumuladas`, ev))
+    .on('mouseleave', tipHide);
+  svg.append('text').attr('class', 'annb').attr('x', x(serie.at(-1).fecha)).attr('y', y(serie.at(-1).n) - 10).attr('text-anchor', 'end').text(`${serie.at(-1).n} cámaras`);
 }
 
 })();
