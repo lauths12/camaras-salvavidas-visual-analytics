@@ -1,19 +1,16 @@
-# Proceso de construcción
+# Limpieza y construcción de los datos
 
-Este documento describe, paso a paso, cómo se construyó este repositorio: de dónde salen los datos, cómo se limpiaron, cómo se calculó el efecto de las cámaras y cómo el tablero consume los resultados. El `README.md` del repositorio se deja vacío a propósito; este es el lugar donde vive la documentación del proceso.
-
-## 1. Fuentes de datos
-
-Todos los datos crudos vienen de Datos Abiertos de Movilidad Bogotá (`datasets.pdf` en la carpeta de cámaras lista los enlaces exactos):
+## 1. Fuentes
 
 - **Cámaras Salvavidas Bogotá** — `Camaras_Salvavidas_Bogota.geojson`, 92 cámaras puntuales, agrupadas en 40 sitios de intersección (el prefijo antes de la barra en `ID_CÁMARA`, p. ej. `DEI-001/CAM-01` → sitio `DEI-001`).
 - **Vectores Bitcarrier** — `Vectores Bitcarrier.geojson`, 868 tramos de sensores de velocidad (`MultiLineString`), identificados por `TID`.
 - **Velocidad Bitcarrier** — 46 archivos CSV mensuales (2019: 11, 2020: 11, 2021: 12, 2022: 12) con velocidad promedio por tramo en intervalos de 15 minutos.
 - **SIGAT / siniestralidad** — un archivo por año (`Base_2018.xlsx` y `SIGAT_ANUARIO_{2019,2020,2021,2022}.xlsx`), con esquema de columnas distinto cada año.
+- Enlaces exactos en `datasets.pdf`, dentro de la carpeta de cámaras.
 
-Este pipeline se construyó **desde los datos crudos, de forma independiente**. No reutiliza ni lee el código ni las tablas de `datos_limpios/` (una base limpia que construyó por separado un compañero de equipo, con su propio script `construir_base.py`, a partir de las mismas fuentes crudas). Esa es una base distinta; esta es una reconstrucción propia.
+Las tablas limpias se construyen directamente desde estos archivos crudos, no desde `datos_limpios/`.
 
-## 2. Problemas de los datos crudos y cómo se trataron
+## 2. Problemas de los datos y cómo se trataron
 
 - **Enero 2019 y diciembre 2022 no existen** en los CSV de velocidad — se documentan como huecos, no se interpolan.
 - **`Velocidades_Bitcarrier_Septiembre_2020.csv` está guardado dentro de la carpeta `2022/`**, pero su contenido (`AÑO=2020`, `MES=September`) es real de 2020. El pipeline agrupa por los campos `AÑO`/`MES` que vienen dentro de cada fila, nunca por la carpeta o el nombre del archivo, así que este archivo cae donde le corresponde sin tratamiento especial.
@@ -80,8 +77,8 @@ python3 -m venv .venv
 
 Las rutas a las carpetas crudas se configuran en `scripts/config.py` (con valores por defecto en `~/Downloads`), o por variables de entorno — ver `scripts/README.md`. `data/clean/` (las tablas intermedias) no se versiona — se regenera corriendo el pipeline; solo los `data/*.json` y `data/tramos.geojson` que consume el tablero quedan en el repositorio.
 
-## 10. Límites conocidos de este análisis
+## 10. Limitaciones
 
-- El vínculo entre un siniestro y un corredor con cámara es una coincidencia de texto entre la dirección y el nombre del corredor, no una geocodificación exacta. Por eso el ranking y el mapa de calor trabajan a nivel de **corredor**, no de intersección individual — a diferencia de un geocodificador dedicado, esto es una aproximación deliberada y declarada, no un dato preciso.
+- El vínculo entre un siniestro y un corredor con cámara es una coincidencia de texto entre la dirección y el nombre del corredor, no una geocodificación exacta. Por eso el ranking y el mapa de calor trabajan a nivel de **corredor**, no de intersección individual.
 - El grupo de "tratamiento" del modelo de diferencias en diferencias es, por la misma razón, un conjunto de corredores con cámara, no un radio físico medido en metros para cada siniestro salvo en 2022 (único año con coordenadas reales).
 - La velocidad es velocidad de recorrido entre sensores Bitcarrier, no velocidad puntual medida por la cámara.
