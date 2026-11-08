@@ -8,6 +8,8 @@ from config import CLEAN_DIR, DATA_DIR, SEVERIDADES
 
 RNG = np.random.default_rng(20240101)
 N_BOOTSTRAP = 300
+RADIO_TRATAMIENTO_M = 250
+RADIOS_SENSIBILIDAD_M = [150, 250, 500]
 
 
 def franja_de_hora(hora):
@@ -25,9 +27,10 @@ def franja_de_hora(hora):
     return "NOCHE"
 
 
-def cargar_siniestros():
+def cargar_siniestros(radio_m=RADIO_TRATAMIENTO_M):
     df = pd.read_csv(CLEAN_DIR / "siniestros.csv")
-    df["grupo"] = np.where(df["corredor_camara_texto"] == "SI", "TRATAMIENTO", "CONTROL")
+    df = df[df["dist_camara_m"].notna()].copy()
+    df["grupo"] = np.where(df["dist_camara_m"] <= radio_m, "TRATAMIENTO", "CONTROL")
     return df
 
 
@@ -100,6 +103,21 @@ def construir_efecto_promedio(df):
     print("efecto_promedio:", resultados)
 
 
+def construir_efecto_por_radio():
+    resultados = []
+    for radio in RADIOS_SENSIBILIDAD_M:
+        df_r = cargar_siniestros(radio)
+        base = df_r[df_r["periodo"].isin(["1_ANTES", "4_DESPUES"])]
+        efecto = efecto_para_subset(base)
+        efecto["radio_m"] = radio
+        efecto["n_tratamiento"] = int((base["grupo"] == "TRATAMIENTO").sum())
+        efecto["n_control"] = int((base["grupo"] == "CONTROL").sum())
+        resultados.append(efecto)
+    with open(DATA_DIR / "efecto_por_radio.json", "w", encoding="utf-8") as f:
+        json.dump(resultados, f, ensure_ascii=False)
+    print("efecto_por_radio:", resultados)
+
+
 def construir_tendencia(df):
     conteos = df.groupby(["grupo", "anio"]).size().reset_index(name="n")
     series = {}
@@ -116,13 +134,23 @@ def construir_tendencia(df):
     print("tendencia:", {k: len(v) for k, v in series.items()})
 
 
+def cargar_sitio_a_corredor():
+    sitios = pd.read_csv(CLEAN_DIR / "sitios.csv")
+    return dict(zip(sitios["sitio"], sitios["corredor"]))
+
+
 def construir_corredores_ranking(df):
     antes = df[df["periodo"] == "1_ANTES"]
     despues = df[df["periodo"] == "4_DESPUES"]
     ciudad_cambio = 100 * (len(despues) - len(antes)) / max(len(antes), 1)
 
+    sitio_a_corredor = cargar_sitio_a_corredor()
+    cerca = df[(df["grupo"] == "TRATAMIENTO") & df["sitio_cercano"].notna()].copy()
+    cerca["corredor"] = cerca["sitio_cercano"].map(sitio_a_corredor)
+    cerca = cerca[cerca["corredor"].notna()]
+
     filas = []
-    for corredor, grupo_df in df[df["corredor_nombre"].notna()].groupby("corredor_nombre"):
+    for corredor, grupo_df in cerca.groupby("corredor"):
         a = (grupo_df["periodo"] == "1_ANTES").sum()
         d = (grupo_df["periodo"] == "4_DESPUES").sum()
         cambio = None if a == 0 else round(100 * (d - a) / a, 1)
@@ -140,10 +168,13 @@ def construir_corredores_ranking(df):
 
 
 def construir_heatmap(df):
-    sub = df[df["corredor_nombre"].notna()]
-    tabla = sub.groupby(["corredor_nombre", "anio"]).size().reset_index(name="n")
+    sitio_a_corredor = cargar_sitio_a_corredor()
+    cerca = df[(df["grupo"] == "TRATAMIENTO") & df["sitio_cercano"].notna()].copy()
+    cerca["corredor"] = cerca["sitio_cercano"].map(sitio_a_corredor)
+    cerca = cerca[cerca["corredor"].notna()]
+    tabla = cerca.groupby(["corredor", "anio"]).size().reset_index(name="n")
     filas = [
-        {"corredor": r["corredor_nombre"], "anio": int(r["anio"]), "n": int(r["n"])}
+        {"corredor": r["corredor"], "anio": int(r["anio"]), "n": int(r["n"])}
         for _, r in tabla.iterrows()
     ]
     with open(DATA_DIR / "heatmap.json", "w", encoding="utf-8") as f:
@@ -171,14 +202,16 @@ def construir_gravedad_franja(df):
     print("gravedad_franja filas:", len(filas))
 
 
-def construir_calidad(df):
+def construir_calidad():
+    df_total = pd.read_csv(CLEAN_DIR / "siniestros.csv")
     por_anio = []
-    for anio, sub in df.groupby("anio"):
+    for anio, sub in df_total.groupby("anio"):
         por_anio.append({
             "anio": int(anio),
             "total": int(len(sub)),
-            "pct_geocodificado": round(100 * sub["lat"].notna().mean(), 1),
-            "pct_corredor_camara": round(100 * (sub["corredor_camara_texto"] == "SI").mean(), 1),
+            "pct_coordenada_real": round(100 * (sub["geo_fuente"] == "real").mean(), 1),
+            "pct_geocodificado": round(100 * sub["dist_camara_m"].notna().mean(), 1),
+            "pct_en_250m": round(100 * (sub["dist_camara_m"] <= 250).mean(), 1),
         })
     with open(DATA_DIR / "calidad.json", "w", encoding="utf-8") as f:
         json.dump({"siniestros_por_anio": por_anio}, f, ensure_ascii=False)
@@ -188,11 +221,12 @@ def construir_calidad(df):
 def main():
     df = cargar_siniestros()
     construir_efecto_promedio(df)
+    construir_efecto_por_radio()
     construir_tendencia(df)
     construir_corredores_ranking(df)
     construir_heatmap(df)
     construir_gravedad_franja(df)
-    construir_calidad(df)
+    construir_calidad()
 
 
 if __name__ == "__main__":

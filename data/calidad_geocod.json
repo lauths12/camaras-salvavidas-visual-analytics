@@ -1,0 +1,10 @@
+{
+"n_prueba": 12724,
+"n_con_estimacion": 12365,
+"n_sin_match": 359,
+"pct_sin_match": 2.8,
+"error_mediano_m": 169.7,
+"pct_menor_100m": 35.9,
+"pct_menor_250m": 58.3,
+"pct_menor_500m": 67.9
+}

@@ -6,6 +6,7 @@ PASOS = [
     "build_sitios_tramos.py",
     "build_siniestros.py",
     "build_velocidades.py",
+    "build_geocodificacion.py",
     "build_efecto.py",
     "build_exposicion.py",
 ]

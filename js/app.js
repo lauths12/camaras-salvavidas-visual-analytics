@@ -81,8 +81,8 @@ function drawHero() {
   const ciudadCambio = (DATA.tendencia.CONTROL.at(-1).indice - 100);
   const muertos = DATA.efecto['CON MUERTOS'];
   const tiles = [
-    { big: fmt((DATA.efecto.TODAS.razon_tasa - 1) * 100) + ' %', cls: DATA.efecto.TODAS.razon_tasa < 1 ? 'neg' : 'pos', d: 'siniestros en corredores con cámara' },
-    { big: fmt(ciudadCambio) + ' %', cls: 'mid', d: 'en corredores sin cámara, mismo periodo' },
+    { big: fmt((DATA.efecto.TODAS.razon_tasa - 1) * 100) + ' %', cls: DATA.efecto.TODAS.razon_tasa < 1 ? 'neg' : 'pos', d: 'siniestros a 250 m o menos de una cámara' },
+    { big: fmt(ciudadCambio) + ' %', cls: 'mid', d: 'a más de 250 m, mismo periodo' },
     { big: fmt((muertos.razon_tasa - 1) * 100) + ' %', cls: muertos.razon_tasa < 1 ? 'neg' : 'pos', d: 'siniestros con muertos cerca de las cámaras' }
   ];
   d3.select('#heroStats').selectAll('div').data(tiles).join('div').html(d => `<span class="big ${d.cls}">${d.big}</span><span>${d.d}</span>`);
@@ -258,7 +258,7 @@ function drawSummary() {
   const el = d3.select('#fsum');
   if (E.lay !== 'sin') { el.html('Las avenidas más brillantes tienen más cámaras por kilómetro: ahí es donde la cámara pesa más en la velocidad del tramo.'); return; }
   const rows = E.corr ? DATA.ranking.filter(r => r.corredor === E.corr) : DATA.ranking;
-  if (!rows.length) { el.text('Este corredor no tiene suficiente coincidencia de texto para calcular un cambio.'); return; }
+  if (!rows.length) { el.text('Este corredor no tiene suficientes siniestros cerca de una cámara para calcular un cambio.'); return; }
   const a = d3.sum(rows, r => r.antes), d = d3.sum(rows, r => r.despues);
   el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.`);
 }

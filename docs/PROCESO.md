@@ -48,9 +48,19 @@ Los 46 CSV crudos (≈15.7 GB) se leen con DuckDB directamente desde las dos car
 
 Salida: `data/clean/velocidad_mensual.csv` (786 044 filas).
 
-## 6. Efecto de las cámaras (`scripts/build_efecto.py`)
+## 6. Geocodificación propia (`scripts/direcciones.py`, `scripts/geocodificar.py`, `scripts/build_geocodificacion.py`)
 
-El grupo de tratamiento para este modelo es el conjunto de siniestros cuya dirección coincide con el nombre de un corredor con cámara (`corredor_camara_texto = SI`); el resto de la ciudad es el control. Se construye un panel mensual de conteos por grupo, y se ajusta una regresión de Poisson:
+Solo 2022 trae latitud/longitud reales en los siniestros. Se investigó usar el geocodificador oficial de Bogotá (IDECA/Catastro, corre sobre `serviciosgis.catastrobogota.gov.co`) en vez de inventar uno — resultó requerir token institucional sin autorregistro público, así que no se pudo usar. En su lugar se construyó un geocodificador propio, desde cero:
+
+1. **Parseo de direcciones** (`direcciones.py`): las direcciones de siniestros son cruces tipo `VIA1 - VIA2 código` (p. ej. `KR 60 - CL 44 02`). Se parsean los dos tramos de vía (tipo CL/KR/AK/AC/AV/DG/TV + número + letra + sufijo sur) a una clave normalizada. Cubre el 99,0% de las 148.943 direcciones; el resto son vías rurales tipo `VIA CHOACHI KM 12` que no tienen formato de cruce y se descartan.
+2. **Referencia**: los 25.447 siniestros de 2022 (con coordenada real y dirección en el mismo formato) sirven de referencia. Se indexan por cruce exacto (ambas vías) y por vía individual (para interpolar cuando no hay coincidencia exacta de cruce).
+3. **Geocodificación**: para un siniestro sin coordenada, si su cruce exacto aparece en la referencia, se usa el promedio de esos puntos. Si no, se interpola por la vía principal usando los 3 puntos de referencia más cercanos en número de la vía que cruza. Si ninguna de las dos vías tiene referencia, no se inventa coordenada.
+4. **Validación honesta** (`data/calidad_geocod.json`): split-half sobre los propios 25.447 registros de 2022 — se parte por la mitad, se geocodifica la mitad de prueba usando solo la otra mitad como referencia, y se compara contra la coordenada real. Resultado real (no estimado): **error mediano de 170 m**, 35,9% de los puntos a menos de 100 m, 58,3% a menos de 250 m, 67,9% a menos de 500 m, y 2,8% sin ninguna referencia para geocodificar. Es peor que el 64 m que reporta el repo original — es el costo real de no tener acceso al geocodificador oficial.
+5. Con esa referencia completa de 2022, se geocodifican los 123.496 siniestros de 2018–2021; 148.255 de los 148.943 totales (99,5%) terminan con alguna coordenada (real o estimada) y distancia a la cámara más cercana (`dist_camara_m` en `data/clean/siniestros.csv`).
+
+## 7. Efecto de las cámaras (`scripts/build_efecto.py`)
+
+El grupo de tratamiento para este modelo es el conjunto de siniestros a **250 m o menos** de la cámara más cercana (`dist_camara_m`), usando la coordenada real en 2022 y la geocodificada en 2018–2021; el resto es el control. Se eligió 250 m y no 150 m porque el error mediano del geocodificador (170 m) ya es mayor que un radio de 150 m, lo que haría esa clasificación poco confiable. `data/efecto_por_radio.json` muestra el mismo modelo a 150, 250 y 500 m para ver qué tan sensible es el resultado al radio elegido. Se construye un panel mensual de conteos por grupo, y se ajusta una regresión de Poisson:
 
 ```
 conteo ~ C(mes) + tratamiento * despues
@@ -58,21 +68,23 @@ conteo ~ C(mes) + tratamiento * despues
 
 con efectos fijos por mes (para controlar estacionalidad) y una interacción tratamiento×después, que es el estimador de diferencias en diferencias. El intervalo de confianza del 95% se calcula por bootstrap (300 remuestreos con reemplazo a nivel de siniestro, reconstruyendo el panel y reajustando el modelo en cada iteración). Se corre una vez para todos los siniestros y una vez por cada nivel de gravedad.
 
-La misma función genera además: `data/tendencia.json` (índice anual base 100, tratamiento vs. control), `data/corredores_ranking.json` (cambio % de siniestros antes/después por corredor, contra el cambio promedio de la ciudad), `data/heatmap.json` (siniestros por corredor × año), `data/gravedad_franja.json` (% de siniestros por gravedad dentro de cada franja horaria, usando la hora propia de cada siniestro) y `data/calidad.json` (cobertura de geocodificación y de coincidencia de corredor por año).
+Resultado a 250 m: razón de tasa 1,040 (IC95% 0,995–1,086) para todos los siniestros — no significativo, cruza 1. Con heridos 1,040 (0,964–1,121), con muertos 1,083 (0,686–1,390), solo daños 1,057 (1,000–1,119). A 150 m da 1,110 (1,050–1,182, sí significativo) y a 500 m 1,042 (1,013–1,075). Son números reales de esta reconstrucción, no los del repo original ni los del corredor por texto que se usaba antes en este mismo repo — cambia el resultado según qué tan preciso es el vínculo siniestro↔cámara, y ninguno de los tres debería leerse como la cifra "correcta" sin más contexto.
 
-## 7. Exposición a cámaras y velocidad (`scripts/build_exposicion.py`)
+La misma función genera además: `data/tendencia.json` (índice anual base 100, tratamiento vs. control por distancia), `data/corredores_ranking.json` y `data/heatmap.json` (agrupan por el corredor del sitio más cercano entre los siniestros a 250 m o menos, usando `sitio_cercano`, no coincidencia de texto), `data/gravedad_franja.json` (% de siniestros por gravedad dentro de cada franja horaria) y `data/calidad.json` (cobertura real/geocodificada y % dentro de 250 m por año).
+
+## 8. Exposición a cámaras y velocidad (`scripts/build_exposicion.py`)
 
 Por tramo de sensor: número de cámaras cercanas (`n_camaras`) vs. cambio en la velocidad p85 entre el periodo `1_ANTES` y el periodo `4_DESPUES` (promedio ponderado por número de lecturas). Salida: `data/exposicion_camaras.json`.
 
-## 8. Tablero (`index.html`, `css/styles.css`, `js/app.js`)
+## 9. Tablero (`index.html`, `css/styles.css`, `js/app.js`)
 
-Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, ranking de corredores, tendencia anual, mapa de calor corredor×año, gráfico de efecto (forest plot), dispersión de exposición a cámaras y velocidad, barras de gravedad por franja horaria y un panel de calidad de datos. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
+Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, ranking de corredores, tendencia anual, mapa de calor corredor×año, gráfico de efecto (forest plot), dispersión de exposición a cámaras y velocidad, barras de gravedad por franja horaria. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
 
-## 9. Diseño visual
+## 10. Diseño visual
 
-El tablero sigue el mismo sistema visual del repositorio original `cameras-salvavidas` (tipografía, paneles de vidrio esmerilado, mapa fijo con historia que se desliza, explorador con zoom). Se adapta al nivel de análisis de este proyecto: por corredor, no por cruce individual, porque la vinculación siniestro–cámara aquí es por coincidencia de texto en la dirección y no por geocodificación punto a punto.
+El tablero sigue el mismo sistema visual del repositorio original `cameras-salvavidas` (tipografía, paneles de vidrio esmerilado, mapa fijo con historia que se desliza, explorador con zoom).
 
-## 10. Cómo correr todo de nuevo
+## 11. Cómo correr todo de nuevo
 
 ```
 python3 -m venv .venv
@@ -82,8 +94,9 @@ python3 -m venv .venv
 
 Las rutas a las carpetas crudas se configuran en `scripts/config.py` (con valores por defecto en `~/Downloads`), o por variables de entorno — ver `scripts/README.md`. `data/clean/` (las tablas intermedias) no se versiona — se regenera corriendo el pipeline; solo los `data/*.json` y `data/tramos.geojson` que consume el tablero quedan en el repositorio.
 
-## 11. Limitaciones
+## 12. Limitaciones
 
-- El vínculo entre un siniestro y un corredor con cámara es una coincidencia de texto entre la dirección y el nombre del corredor, no una geocodificación exacta. Por eso el ranking y el mapa de calor trabajan a nivel de **corredor**, no de intersección individual.
-- El grupo de "tratamiento" del modelo de diferencias en diferencias es, por la misma razón, un conjunto de corredores con cámara, no un radio físico medido en metros para cada siniestro salvo en 2022 (único año con coordenadas reales).
+- La geocodificación propia (sección 6) tiene un error mediano real de 170 m, medido por validación cruzada, no supuesto. A un radio de tratamiento de 250 m eso es ruido significativo: siniestros que en realidad están cerca pueden clasificarse como lejos, y viceversa. El resultado del modelo de efecto depende de esto más de lo que parece al mirar solo el número final.
+- `corredores_ranking.json` y `heatmap.json` agrupan por corredor (a través del sitio más cercano), no por cruce o punto individual, aunque la clasificación de cercanía (250 m) ya es por distancia real/geocodificada, igual que el modelo de efecto.
+- 2,8% de los siniestros 2018–2021 no tienen ninguna vía de referencia en 2022 y quedan sin coordenada ni distancia a cámara.
 - La velocidad es velocidad de recorrido entre sensores Bitcarrier, no velocidad puntual medida por la cámara.
