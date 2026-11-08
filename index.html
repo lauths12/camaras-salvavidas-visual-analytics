@@ -4,18 +4,57 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cámaras salvavidas — analítica visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Source+Sans+3:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<header class="hero">
-  <h1>Cámaras salvavidas de Bogotá</h1>
-  <p>Analítica visual de siniestralidad y velocidad alrededor de las cámaras de control de velocidad, 2018–2022.</p>
+
+<header class="hero" id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-contenido">
+    <h1>Cámaras salvavidas de Bogotá</h1>
+    <p>Analítica visual de siniestralidad y velocidad alrededor de las cámaras de control de velocidad, 2018–2022.</p>
+    <div class="hero-scroll">desliza para ver la historia ↓</div>
+  </div>
 </header>
+
+<section id="historia" class="historia">
+  <div class="historia-mapa-col">
+    <div class="historia-mapa-wrap">
+      <svg id="historia-svg" viewBox="0 0 960 760"></svg>
+      <div id="historia-leyenda" class="leyenda leyenda-fija"></div>
+    </div>
+  </div>
+  <div class="historia-pasos">
+    <article class="paso" data-paso="0">
+      <h3>868 tramos vigilados</h3>
+      <p>Bogotá mide la velocidad del tráfico en <span class="mono">868</span> tramos de vía con sensores de red Bitcarrier, repartidos por toda la ciudad.</p>
+    </article>
+    <article class="paso" data-paso="1">
+      <h3>92 cámaras, 40 sitios</h3>
+      <p>Sobre esa red se instalaron <span class="mono">92</span> cámaras salvavidas en <span class="mono">40</span> sitios de intersección, para sancionar el exceso de velocidad.</p>
+    </article>
+    <article class="paso" data-paso="2">
+      <h3>Tratamiento y control</h3>
+      <p>Los tramos con una cámara a menos de 50&nbsp;m (naranja) son el grupo de <strong>tratamiento</strong>. El resto de la ciudad (gris) sirve de <strong>control</strong> para comparar.</p>
+    </article>
+    <article class="paso" data-paso="3">
+      <h3>Los corredores que más cambiaron</h3>
+      <p>Comparando antes y después de cada cámara, estos son los corredores con mayor caída de siniestros: <span id="top-corredores" class="mono"></span>.</p>
+    </article>
+    <article class="paso" data-paso="4">
+      <h3>El efecto estimado</h3>
+      <p>Un modelo de diferencias en diferencias estima una caída de <span id="efecto-reduccion" class="mono"></span> en los siniestros de los corredores con cámara, frente al resto de la ciudad.</p>
+    </article>
+  </div>
+</section>
 
 <main>
   <section id="mapa" class="panel">
-    <h2>Cámaras y tramos de velocidad</h2>
-    <p class="nota">92 cámaras en 40 sitios de intersección, sobre 868 tramos de sensores Bitcarrier. En naranja, los tramos con una cámara a menos de 50&nbsp;m (grupo de tratamiento).</p>
+    <h2>Explora el mapa completo</h2>
+    <p class="nota">92 cámaras en 40 sitios de intersección, sobre 868 tramos de sensores Bitcarrier. En naranja, los tramos con una cámara a menos de 50&nbsp;m (grupo de tratamiento). Arrastrá para mover, usá la rueda o pellizcá para hacer zoom.</p>
     <svg id="mapa-svg" viewBox="0 0 960 760"></svg>
     <div id="mapa-leyenda" class="leyenda"></div>
   </section>
@@ -67,6 +106,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/scrolly.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

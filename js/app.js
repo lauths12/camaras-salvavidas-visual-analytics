@@ -18,7 +18,13 @@ function dibujarMapa(camaras, tramosGeo) {
   const proyeccion = d3.geoMercator().fitSize([ancho - 20, alto - 20], tramosGeo);
   const camino = d3.geoPath(proyeccion);
 
-  svg.append("g")
+  const zoomCapa = svg.append("g").attr("class", "zoom-capa");
+
+  zoomCapa.append("rect")
+    .attr("x", 0).attr("y", 0).attr("width", ancho).attr("height", alto)
+    .attr("fill", "transparent");
+
+  zoomCapa.append("g")
     .attr("transform", "translate(10,10)")
     .selectAll("path")
     .data(tramosGeo.features)
@@ -31,7 +37,7 @@ function dibujarMapa(camaras, tramosGeo) {
     .on("mousemove", (evento, d) => mostrarTooltip(evento, `Tramo ${d.properties.tid}<br>${d.properties.via ?? ""} → ${d.properties.entre ?? ""}<br>${d.properties.con_camara ? d.properties.n_camaras + " cámara(s)" : "sin cámara"}`))
     .on("mouseleave", ocultarTooltip);
 
-  svg.append("g")
+  zoomCapa.append("g")
     .attr("transform", "translate(10,10)")
     .selectAll("circle")
     .data(camaras)
@@ -44,6 +50,12 @@ function dibujarMapa(camaras, tramosGeo) {
     .attr("stroke-width", 0.6)
     .on("mousemove", (evento, d) => mostrarTooltip(evento, `${d.sitio}<br>${d.nombre ?? ""}<br>${d.corredor ?? ""}`))
     .on("mouseleave", ocultarTooltip);
+
+  const zoom = d3.zoom()
+    .scaleExtent([1, 10])
+    .on("zoom", (evento) => zoomCapa.attr("transform", evento.transform));
+
+  svg.call(zoom);
 
   const leyenda = d3.select("#mapa-leyenda");
   const items = [
@@ -302,6 +314,7 @@ function dibujarCalidad(calidad) {
 Promise.all([
   d3.json("data/camaras.json"),
   d3.json("data/tramos.geojson"),
+  d3.json("data/sitios.json"),
   d3.json("data/corredores_ranking.json"),
   d3.json("data/tendencia.json"),
   d3.json("data/heatmap.json"),
@@ -309,7 +322,9 @@ Promise.all([
   d3.json("data/exposicion_camaras.json"),
   d3.json("data/gravedad_franja.json"),
   d3.json("data/calidad.json"),
-]).then(([camaras, tramosGeo, ranking, tendencia, heatmap, efecto, exposicion, gravedad, calidad]) => {
+]).then(([camaras, tramosGeo, sitios, ranking, tendencia, heatmap, efecto, exposicion, gravedad, calidad]) => {
+  dibujarHero(tramosGeo);
+  initHistoria(tramosGeo, camaras, sitios, ranking, efecto);
   dibujarMapa(camaras, tramosGeo);
   dibujarRanking(ranking);
   dibujarTendencia(tendencia);
