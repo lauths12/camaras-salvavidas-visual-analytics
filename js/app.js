@@ -205,10 +205,10 @@ function dibujarEfecto(resultados) {
   });
 }
 
-function dibujarDosis(filas) {
+function dibujarExposicion(filas) {
   const margen = { top: 20, right: 30, bottom: 40, left: 50 };
   const ancho = 900, alto = 420;
-  const svg = d3.select("#dosis-svg");
+  const svg = d3.select("#exposicion-svg");
 
   const x = d3.scaleLinear().domain([0, d3.max(filas, d => d.n_camaras) + 0.5]).range([margen.left, ancho - margen.right]);
   const y = d3.scaleLinear().domain(d3.extent(filas, d => d.delta_p85)).nice().range([alto - margen.bottom, margen.top]);
@@ -306,16 +306,16 @@ Promise.all([
   d3.json("data/tendencia.json"),
   d3.json("data/heatmap.json"),
   d3.json("data/efecto_promedio.json"),
-  d3.json("data/velocidad_dosis.json"),
+  d3.json("data/exposicion_camaras.json"),
   d3.json("data/gravedad_franja.json"),
   d3.json("data/calidad.json"),
-]).then(([camaras, tramosGeo, ranking, tendencia, heatmap, efecto, dosis, gravedad, calidad]) => {
+]).then(([camaras, tramosGeo, ranking, tendencia, heatmap, efecto, exposicion, gravedad, calidad]) => {
   dibujarMapa(camaras, tramosGeo);
   dibujarRanking(ranking);
   dibujarTendencia(tendencia);
   dibujarHeatmap(heatmap);
   dibujarEfecto(efecto);
-  dibujarDosis(dosis);
+  dibujarExposicion(exposicion);
   dibujarGravedad(gravedad);
   dibujarCalidad(calidad);
 });

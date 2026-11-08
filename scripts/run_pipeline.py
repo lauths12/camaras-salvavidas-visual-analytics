@@ -7,7 +7,7 @@ PASOS = [
     "build_siniestros.py",
     "build_velocidades.py",
     "build_efecto.py",
-    "build_dosis.py",
+    "build_exposicion.py",
 ]
 
 

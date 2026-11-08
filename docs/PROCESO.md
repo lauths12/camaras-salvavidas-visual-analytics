@@ -62,13 +62,13 @@ con efectos fijos por mes (para controlar estacionalidad) y una interacción tra
 
 La misma función genera además: `data/tendencia.json` (índice anual base 100, tratamiento vs. control), `data/corredores_ranking.json` (cambio % de siniestros antes/después por corredor, contra el cambio promedio de la ciudad), `data/heatmap.json` (siniestros por corredor × año), `data/gravedad_franja.json` (% de siniestros por gravedad dentro de cada franja horaria, usando la hora propia de cada siniestro) y `data/calidad.json` (cobertura de geocodificación y de coincidencia de corredor por año).
 
-## 7. Dosis de cámaras y velocidad (`scripts/build_dosis.py`)
+## 7. Exposición a cámaras y velocidad (`scripts/build_exposicion.py`)
 
-Por tramo de sensor: número de cámaras cercanas (`n_camaras`) vs. cambio en la velocidad p85 entre el periodo `1_ANTES` y el periodo `4_DESPUES` (promedio ponderado por número de lecturas). Salida: `data/velocidad_dosis.json`.
+Por tramo de sensor: número de cámaras cercanas (`n_camaras`) vs. cambio en la velocidad p85 entre el periodo `1_ANTES` y el periodo `4_DESPUES` (promedio ponderado por número de lecturas). Salida: `data/exposicion_camaras.json`.
 
 ## 8. Tablero (`index.html`, `css/styles.css`, `js/app.js`)
 
-Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, ranking de corredores, tendencia anual, mapa de calor corredor×año, gráfico de efecto (forest plot), dispersión de dosis de velocidad, barras de gravedad por franja horaria y un panel de calidad de datos. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
+Sitio estático, sin build ni framework. Toda visualización se dibuja con **D3.js v7** (cargado por CDN) — mapa de cámaras y tramos, ranking de corredores, tendencia anual, mapa de calor corredor×año, gráfico de efecto (forest plot), dispersión de exposición a cámaras y velocidad, barras de gravedad por franja horaria y un panel de calidad de datos. El tablero solo lee los archivos `data/*.json` y `data/tramos.geojson` ya calculados; no vuelve a tocar los datos crudos.
 
 ## 9. Cómo correr todo de nuevo
 

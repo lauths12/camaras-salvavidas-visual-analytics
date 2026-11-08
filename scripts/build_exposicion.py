@@ -58,10 +58,10 @@ def main():
             "delta_p85": round(p85_despues - p85_antes, 2),
         })
 
-    with open(DATA_DIR / "velocidad_dosis.json", "w", encoding="utf-8") as f:
+    with open(DATA_DIR / "exposicion_camaras.json", "w", encoding="utf-8") as f:
         json.dump(filas, f, ensure_ascii=False)
 
-    print("velocidad_dosis filas:", len(filas))
+    print("exposicion_camaras filas:", len(filas))
 
 
 if __name__ == "__main__":
