@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cámaras salvavidas — analítica visual</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="hero">
+  <h1>Cámaras salvavidas de Bogotá</h1>
+  <p>Analítica visual de siniestralidad y velocidad alrededor de las cámaras de control de velocidad, 2018–2022.</p>
+</header>
+
+<main>
+  <section id="mapa" class="panel">
+    <h2>Cámaras y tramos de velocidad</h2>
+    <p class="nota">92 cámaras en 40 sitios de intersección, sobre 868 tramos de sensores Bitcarrier. En naranja, los tramos con una cámara a menos de 50&nbsp;m (grupo de tratamiento).</p>
+    <svg id="mapa-svg" viewBox="0 0 960 760"></svg>
+    <div id="mapa-leyenda" class="leyenda"></div>
+  </section>
+
+  <section id="ranking" class="panel">
+    <h2>Cambio de siniestros por corredor</h2>
+    <p class="nota">Corredores identificados por coincidencia de texto entre la dirección del siniestro y el nombre del corredor de una cámara. Línea punteada: cambio promedio de la ciudad.</p>
+    <svg id="ranking-svg" viewBox="0 0 900 420"></svg>
+  </section>
+
+  <section id="tendencia" class="panel">
+    <h2>Tendencia anual: tratamiento vs. control</h2>
+    <p class="nota">Índice base 100 en el primer año disponible (2018). Tratamiento: siniestros en corredores con cámara. Control: resto de la ciudad.</p>
+    <svg id="tendencia-svg" viewBox="0 0 900 420"></svg>
+    <div id="tendencia-leyenda" class="leyenda"></div>
+  </section>
+
+  <section id="heatmap" class="panel">
+    <h2>Siniestros por corredor y año</h2>
+    <svg id="heatmap-svg" viewBox="0 0 900 480"></svg>
+  </section>
+
+  <section id="efecto" class="panel">
+    <h2>Efecto estimado (diferencias en diferencias)</h2>
+    <p class="nota">Razón de tasa de siniestros (tratamiento × después) de un modelo Poisson con efectos fijos por mes, antes (hasta oct. 2019) vs. después (2021–2022). Intervalo de confianza 95% por bootstrap.</p>
+    <svg id="efecto-svg" viewBox="0 0 900 320"></svg>
+  </section>
+
+  <section id="dosis" class="panel">
+    <h2>Dosis de cámaras y cambio de velocidad</h2>
+    <p class="nota">Por tramo de sensor: número de cámaras cercanas vs. cambio en la velocidad p85 entre antes y después.</p>
+    <svg id="dosis-svg" viewBox="0 0 900 420"></svg>
+  </section>
+
+  <section id="gravedad" class="panel">
+    <h2>Gravedad por franja horaria</h2>
+    <svg id="gravedad-svg" viewBox="0 0 900 420"></svg>
+    <div id="gravedad-leyenda" class="leyenda"></div>
+  </section>
+
+  <section id="calidad" class="panel">
+    <h2>Calidad y cobertura de los datos</h2>
+    <svg id="calidad-svg" viewBox="0 0 900 320"></svg>
+  </section>
+</main>
+
+<footer>
+  <p>Fuentes: SIGAT (siniestralidad 2018–2022), Cámaras Salvavidas Bogotá, Bitcarrier (velocidad y vectores de red) — Datos Abiertos de Movilidad Bogotá.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
