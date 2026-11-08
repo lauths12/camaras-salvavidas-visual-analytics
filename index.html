@@ -2,71 +2,137 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cámaras salvavidas — analítica visual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cámaras salvavidas de Bogotá</title>
+<meta name="description" content="¿Qué cambió cerca de las cámaras salvavidas de Bogotá? Siniestros por corredor, velocidad y gravedad, 2018–2022.">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 </head>
 <body>
+
 <header class="hero">
-  <h1>Cámaras salvavidas de Bogotá</h1>
-  <p>Analítica visual de siniestralidad y velocidad alrededor de las cámaras de control de velocidad, 2018–2022.</p>
+  <canvas id="heroRoads" aria-hidden="true"></canvas>
+  <div class="hero-in">
+    <h1>Cámaras salvavidas</h1>
+    <p class="dek">En 2019 Bogotá instaló 92 cámaras de velocidad en 40 cruces de sus avenidas. Con datos de siniestralidad y velocidad de 2018 a 2022, miramos qué cambió en los corredores con cámara frente al resto de la ciudad.</p>
+    <div class="hero-stats" id="heroStats"></div>
+    <a href="#historia" class="scrollcue">desliza para ver la historia ↓</a>
+  </div>
 </header>
 
-<main>
-  <section id="mapa" class="panel">
-    <h2>Cámaras y tramos de velocidad</h2>
-    <p class="nota">92 cámaras en 40 sitios de intersección, sobre 868 tramos de sensores Bitcarrier. En naranja, los tramos con una cámara a menos de 50&nbsp;m (grupo de tratamiento).</p>
-    <svg id="mapa-svg" viewBox="0 0 960 760"></svg>
-    <div id="mapa-leyenda" class="leyenda"></div>
-  </section>
+<section class="scrolly" id="historia" aria-label="Historia guiada por el mapa">
+  <div class="sticky">
+    <svg id="storyMap" role="img" aria-label="Mapa de Bogotá con tramos y corredores con cámara"></svg>
+    <div class="maplegend" id="storyLegend"></div>
+  </div>
+  <div class="steps">
+    <div class="step" data-scene="0">
+      <p class="step-n">1 de 5</p>
+      <p><b id="s0a">862</b> tramos vigilados. Bogotá mide la velocidad del tráfico en <b id="s0b">862</b> tramos de vía con sensores de red Bitcarrier, repartidos por toda la ciudad.</p>
+    </div>
+    <div class="step" data-scene="1">
+      <p class="step-n">2 de 5</p>
+      <p><b id="s1a">92</b> cámaras en <b id="s1b">40</b> cruces. Están sobre las grandes avenidas: Boyacá, Autopista Norte, Ciudad de Cali, Américas, entre otras.</p>
+    </div>
+    <div class="step" data-scene="2">
+      <p class="step-n">3 de 5</p>
+      <p><b>Tramos con cámara y tramos de control.</b> Los tramos con una cámara a 50 m o menos (violeta) son el grupo de tratamiento. El resto de la ciudad sirve de control para comparar.</p>
+    </div>
+    <div class="step" data-scene="3">
+      <p class="step-n">4 de 5</p>
+      <p><b>Los corredores que más cambiaron:</b> <span id="topCorredores"></span>. Se identifican por coincidencia entre la dirección del siniestro y el nombre del corredor de una cámara.</p>
+    </div>
+    <div class="step" data-scene="4">
+      <p class="step-n">5 de 5</p>
+      <p>Un modelo de diferencias en diferencias estima una variación de <b id="efectoTexto">—</b> en los siniestros de los corredores con cámara, frente al resto de la ciudad.</p>
+    </div>
+  </div>
+</section>
 
-  <section id="ranking" class="panel">
-    <h2>Cambio de siniestros por corredor</h2>
-    <p class="nota">Corredores identificados por coincidencia de texto entre la dirección del siniestro y el nombre del corredor de una cámara. Línea punteada: cambio promedio de la ciudad.</p>
-    <svg id="ranking-svg" viewBox="0 0 900 420"></svg>
-  </section>
+<section class="block" id="explorar" aria-labelledby="h-exp">
+  <div class="head">
+    <p class="kicker">Explora</p>
+    <h2 id="h-exp">Busca tu corredor</h2>
+    <p class="lede">Elige un corredor o cambia la capa del mapa. A la derecha, el gráfico de embudo muestra qué cambios son mayores de lo esperable: los corredores con pocos siniestros necesitan un cambio mayor para salir de la franja gris.</p>
+  </div>
+  <div class="exp-head"><div class="tabs view-tabs" role="tablist" aria-label="Qué ver en el mapa" id="flay"></div></div>
+  <div class="filterbar" role="group" aria-label="Filtros">
+    <label class="ctl"><span>Corredor</span><select id="fcorr"></select></label>
+    <button type="button" class="fclear" id="fclear" hidden>Limpiar filtros</button>
+  </div>
+  <div class="explorer">
+    <div class="exp-map">
+      <svg id="expMap" role="img" aria-label="Mapa explorable de tramos y corredores"></svg>
+      <div class="zoombtns"><button type="button" id="zin" aria-label="Acercar">+</button><button type="button" id="zout" aria-label="Alejar">−</button><button type="button" id="zreset" aria-label="Ver toda la ciudad">⤢</button></div>
+      <div class="maplegend inmap" id="expLegend"></div>
+    </div>
+    <div class="exp-side">
+      <p class="side-t" id="sideT"></p>
+      <p class="side-sub" id="sideSub">Eje vertical: cuánto cambió cada corredor frente a lo que cambió toda la ciudad. Tamaño: siniestros por año antes de las cámaras.</p>
+      <svg id="rank" role="img" aria-label="Cambio por corredor frente a lo esperado"></svg>
+      <div id="side" hidden></div>
+    </div>
+  </div>
+  <p class="sum" id="fsum"></p>
+</section>
 
-  <section id="tendencia" class="panel">
-    <h2>Tendencia anual: tratamiento vs. control</h2>
-    <p class="nota">Índice base 100 en el primer año disponible (2018). Tratamiento: siniestros en corredores con cámara. Control: resto de la ciudad.</p>
-    <svg id="tendencia-svg" viewBox="0 0 900 420"></svg>
-    <div id="tendencia-leyenda" class="leyenda"></div>
-  </section>
+<section class="block" aria-labelledby="h-heat">
+  <div class="head">
+    <p class="kicker">Corredor por corredor</p>
+    <h2 id="h-heat">Siniestros por año en cada corredor</h2>
+    <p class="lede">Cada fila es un corredor con cámara y cada columna, un año. Entre más oscuro, más siniestros. Arriba, el total de todos los corredores por año.</p>
+  </div>
+  <svg id="heat" class="chart" role="img" aria-label="Siniestros por año en cada corredor con cámara"></svg>
+  <p class="source">Las cámaras empezaron a operar entre noviembre de 2019 y marzo de 2020. Haz clic en una fila para ver el corredor en el explorador.</p>
+</section>
 
-  <section id="heatmap" class="panel">
-    <h2>Siniestros por corredor y año</h2>
-    <svg id="heatmap-svg" viewBox="0 0 900 480"></svg>
-  </section>
+<section class="block" aria-labelledby="h-tend">
+  <div class="head">
+    <p class="kicker">Año por año</p>
+    <h2 id="h-tend">Siniestros por año, en corredores con cámara y sin cámara</h2>
+    <p class="lede">Cada línea compara un año con el primer año disponible (2018 = 100). Las dos caen en 2020 por la cuarentena; lo que importa es la distancia entre ellas después.</p>
+  </div>
+  <svg id="idx" class="chart" role="img" aria-label="Índice anual de siniestros en corredores con cámara y sin cámara"></svg>
+</section>
 
-  <section id="efecto" class="panel">
-    <h2>Efecto estimado (diferencias en diferencias)</h2>
-    <p class="nota">Razón de tasa de siniestros (tratamiento × después) de un modelo Poisson con efectos fijos por mes, antes (hasta oct. 2019) vs. después (2021–2022). Intervalo de confianza 95% por bootstrap.</p>
-    <svg id="efecto-svg" viewBox="0 0 900 320"></svg>
-  </section>
+<section class="block" aria-labelledby="h-efe">
+  <div class="head">
+    <p class="kicker">Efecto promedio</p>
+    <h2 id="h-efe">Efecto estimado por diferencias en diferencias</h2>
+    <p class="lede">Un modelo de Poisson con efectos fijos por mes compara los siniestros en corredores con cámara frente al resto de la ciudad, antes y después de la instalación. Cada punto es el cambio estimado; la línea, su intervalo de confianza del 95 %. Si la línea cruza el 0, no se puede afirmar que hubo efecto.</p>
+  </div>
+  <svg id="efecto" class="chart" role="img" aria-label="Efecto promedio estimado por gravedad"></svg>
+  <p class="source">Intervalos por bootstrap (300 remuestreos). Límite: el vínculo siniestro–corredor es por coincidencia de texto en la dirección, no por coordenadas, salvo en 2022.</p>
+</section>
 
-  <section id="exposicion" class="panel">
-    <h2>Exposición a cámaras y cambio de velocidad</h2>
-    <p class="nota">Por tramo de sensor: número de cámaras cercanas vs. cambio en la velocidad p85 entre antes y después.</p>
-    <svg id="exposicion-svg" viewBox="0 0 900 420"></svg>
-  </section>
+<section class="block" aria-labelledby="h-vel">
+  <div class="head">
+    <p class="kicker">Velocidad</p>
+    <h2 id="h-vel">Donde hay más cámaras por kilómetro, la velocidad cambia más</h2>
+    <p class="lede">Cada punto es un tramo de Bitcarrier. Hacia la derecha, más cámaras por km; hacia abajo o arriba, cuánto cambió su velocidad p85 entre el periodo antes y el periodo después. La franja es donde quedó la mitad de los tramos sin cámara.</p>
+  </div>
+  <svg id="dose" class="chart" role="img" aria-label="Cambio de velocidad p85 según cámaras por kilómetro"></svg>
+  <p class="source" id="doseNote"></p>
+</section>
 
-  <section id="gravedad" class="panel">
-    <h2>Gravedad por franja horaria</h2>
-    <svg id="gravedad-svg" viewBox="0 0 900 420"></svg>
-    <div id="gravedad-leyenda" class="leyenda"></div>
-  </section>
+<section class="block" aria-labelledby="h-vg">
+  <div class="head">
+    <p class="kicker">Gravedad</p>
+    <h2 id="h-vg">Gravedad de los siniestros por franja horaria</h2>
+    <p class="lede">Dentro de cada franja, el porcentaje de siniestros que dejó muertos, heridos o solo daños.</p>
+  </div>
+  <div class="mult" id="mult"></div>
+</section>
 
-  <section id="calidad" class="panel">
-    <h2>Calidad y cobertura de los datos</h2>
-    <svg id="calidad-svg" viewBox="0 0 900 320"></svg>
-  </section>
-</main>
-
-<footer>
-  <p>Fuentes: SIGAT (siniestralidad 2018–2022), Cámaras Salvavidas Bogotá, Bitcarrier (velocidad y vectores de red) — Datos Abiertos de Movilidad Bogotá.</p>
+<footer class="foot">
+  <p class="source">Fuentes: SIGAT (siniestralidad 2018–2022), Cámaras Salvavidas Bogotá, Bitcarrier (velocidad y vectores de red) — Datos Abiertos de Movilidad Bogotá.</p>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<div class="tip" id="tip" role="tooltip"></div>
 <script src="js/app.js"></script>
 </body>
 </html>
