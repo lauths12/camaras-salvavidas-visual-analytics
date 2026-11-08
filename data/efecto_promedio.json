@@ -1,0 +1,30 @@
+{
+"TODAS": {
+"efecto_log": -0.3844,
+"razon_tasa": 0.6809,
+"ci95_bajo": 0.6582,
+"ci95_alto": 0.702,
+"n_bootstrap": 300
+},
+"CON MUERTOS": {
+"efecto_log": -0.2304,
+"razon_tasa": 0.7942,
+"ci95_bajo": 0.6383,
+"ci95_alto": 1.0425,
+"n_bootstrap": 300
+},
+"CON HERIDOS": {
+"efecto_log": -0.4171,
+"razon_tasa": 0.6589,
+"ci95_bajo": 0.6271,
+"ci95_alto": 0.7015,
+"n_bootstrap": 300
+},
+"SOLO DANOS": {
+"efecto_log": -0.3854,
+"razon_tasa": 0.6802,
+"ci95_bajo": 0.6478,
+"ci95_alto": 0.709,
+"n_bootstrap": 300
+}
+}
