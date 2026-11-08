@@ -21,10 +21,11 @@ Las tablas limpias se construyen directamente desde estos archivos crudos, no de
 - **Solo 2022 trae latitud/longitud reales** en los siniestros. Para 2018–2021 no se inventan coordenadas: se usa una coincidencia de texto entre la dirección del siniestro y el nombre del corredor de alguna cámara (`corredor_nombre`), que es una aproximación a nivel de corredor, no de intersección exacta.
 - **Las banderas `CON_*`** (moto, peatón, velocidad, etc.) llegan como `SI`/vacío en 2020–2022 en vez de `SI`/`NO`; se normalizan a `SI`/`NO` explícito.
 - **Gravedad**: en 2020 y 2021 la columna `GravedadNombre` trae en realidad el código numérico (1/2/3) en vez de texto; se mapea con el diccionario de la propia hoja `DICCIONARIO` (1=Con Muertos, 2=Con Heridos, 3=Solo Daños).
+- **6 tramos de `Vectores Bitcarrier.geojson` traen geometría basura**: `TID` 41, 42, 156, 157, 158 y 159 tienen coordenadas `[0,0]`–`[1,1]`, ya así en el archivo crudo. Esos puntos quedan fuera de Bogotá y rompen la proyección del mapa si se dejan pasar. Se descartan si ningún punto cae dentro de un rango razonable de longitud/latitud para Bogotá.
 
 ## 3. Unión cámaras ↔ tramos (`scripts/build_sitios_tramos.py`)
 
-Para cada una de las 92 cámaras se calcula la distancia mínima punto-a-segmento contra los 868 tramos de Bitcarrier (proyección local equirrectangular centrada en Bogotá, ~4.65°N). Un tramo se marca `con_camara = true` si tiene al menos una cámara a 50 m o menos; estos tramos son el grupo de tratamiento, el resto es el grupo de control. La fecha de activación de cada cámara se extrae con una expresión regular sobre el texto de la resolución de la Secretaría de Movilidad (`NÚMERO_DE`, p. ej. "Diciembre 13 de 2019").
+Para cada una de las 92 cámaras se calcula la distancia mínima punto-a-segmento contra los 862 tramos de Bitcarrier con geometría válida (proyección local equirrectangular centrada en Bogotá, ~4.65°N). Un tramo se marca `con_camara = true` si tiene al menos una cámara a 50 m o menos; estos tramos son el grupo de tratamiento, el resto es el grupo de control. La fecha de activación de cada cámara se extrae con una expresión regular sobre el texto de la resolución de la Secretaría de Movilidad (`NÚMERO_DE`, p. ej. "Diciembre 13 de 2019").
 
 Salidas: `data/clean/camaras.csv`, `data/clean/tramos.csv`, `data/clean/sitios.csv`, y para el tablero `data/camaras.json`, `data/tramos.json`, `data/tramos.geojson`, `data/sitios.json`.
 

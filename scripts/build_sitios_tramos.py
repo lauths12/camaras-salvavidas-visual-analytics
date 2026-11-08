@@ -56,12 +56,40 @@ def load_camaras():
     return camaras
 
 
+BOGOTA_LON_RANGO = (-74.5, -73.5)
+BOGOTA_LAT_RANGO = (4.0, 5.0)
+
+
+def coordenadas_validas(coords):
+    puntos = []
+
+    def recorrer(c):
+        if isinstance(c[0], (int, float)):
+            puntos.append(c)
+        else:
+            for x in c:
+                recorrer(x)
+
+    recorrer(coords)
+    if not puntos:
+        return False
+    return all(
+        BOGOTA_LON_RANGO[0] < lon < BOGOTA_LON_RANGO[1] and BOGOTA_LAT_RANGO[0] < lat < BOGOTA_LAT_RANGO[1]
+        for lon, lat in puntos
+    )
+
+
 def load_tramos():
     with open(TRAMOS_GEOJSON, encoding="utf-8") as f:
         geo = json.load(f)
     tramos = []
+    descartados = []
     for feat in geo["features"]:
         p = feat["properties"]
+        coords = feat["geometry"]["coordinates"]
+        if not coordenadas_validas(coords):
+            descartados.append(p.get("TID"))
+            continue
         tramos.append({
             "tid": p.get("TID"),
             "tipo": p.get("TYPE"),
@@ -69,8 +97,10 @@ def load_tramos():
             "entre": p.get("NAME_TO"),
             "codigo": p.get("CODIGO"),
             "distancia_m": p.get("DISTANCE"),
-            "coordinates": feat["geometry"]["coordinates"],
+            "coordinates": coords,
         })
+    if descartados:
+        print(f"tramos con geometria invalida descartados: {descartados}")
     return tramos
 
 
