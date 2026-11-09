@@ -1,30 +1,30 @@
 {
 "TODAS": {
-"efecto_log": -0.3844,
-"razon_tasa": 0.6809,
-"ci95_bajo": 0.6582,
-"ci95_alto": 0.702,
+"efecto_log": 0.0396,
+"razon_tasa": 1.0404,
+"ci95_bajo": 0.9955,
+"ci95_alto": 1.0857,
 "n_bootstrap": 300
 },
 "CON MUERTOS": {
-"efecto_log": -0.2304,
-"razon_tasa": 0.7942,
-"ci95_bajo": 0.6383,
-"ci95_alto": 1.0425,
+"efecto_log": 0.0795,
+"razon_tasa": 1.0827,
+"ci95_bajo": 0.6863,
+"ci95_alto": 1.39,
 "n_bootstrap": 300
 },
 "CON HERIDOS": {
-"efecto_log": -0.4171,
-"razon_tasa": 0.6589,
-"ci95_bajo": 0.6271,
-"ci95_alto": 0.7015,
+"efecto_log": 0.0393,
+"razon_tasa": 1.04,
+"ci95_bajo": 0.9643,
+"ci95_alto": 1.1213,
 "n_bootstrap": 300
 },
 "SOLO DANOS": {
-"efecto_log": -0.3854,
-"razon_tasa": 0.6802,
-"ci95_bajo": 0.6478,
-"ci95_alto": 0.709,
+"efecto_log": 0.0557,
+"razon_tasa": 1.0573,
+"ci95_bajo": 0.9996,
+"ci95_alto": 1.1193,
 "n_bootstrap": 300
 }
 }

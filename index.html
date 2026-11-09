@@ -40,28 +40,76 @@
     </div>
     <div class="step" data-scene="2">
       <p class="step-n">3 de 5</p>
-      <p><b>Tramos con cámara y tramos de control.</b> Los tramos con una cámara a 50 m o menos (violeta) son el grupo de tratamiento. El resto de la ciudad sirve de control para comparar.</p>
+      <p><b>Densidad de cámaras por tramo.</b> El degradado va de pocas cámaras por kilómetro a muchas; el resto de la ciudad (gris) sirve de control para comparar.</p>
     </div>
     <div class="step" data-scene="3">
       <p class="step-n">4 de 5</p>
-      <p><b>Los corredores que más cambiaron:</b> <span id="topCorredores"></span>. Se identifican por coincidencia entre la dirección del siniestro y el nombre del corredor de una cámara.</p>
+      <p><b>Los corredores que más cambiaron:</b> <span id="topCorredores"></span>. Se agrupan los siniestros a 250 m o menos de una cámara por el corredor de su sitio más cercano.</p>
     </div>
     <div class="step" data-scene="4">
       <p class="step-n">5 de 5</p>
-      <p>Un modelo de diferencias en diferencias estima una variación de <b id="efectoTexto">—</b> en los siniestros de los corredores con cámara, frente al resto de la ciudad.</p>
+      <p>Un modelo de diferencias en diferencias estima una variación de <b id="efectoTexto">—</b> en los siniestros a 250 m o menos de una cámara, frente al resto de la ciudad.</p>
     </div>
   </div>
+</section>
+
+<section class="block" aria-labelledby="h-tend">
+  <div class="head">
+    <p class="kicker">Año por año</p>
+    <h2 id="h-tend">Siniestros por año, cerca y lejos de una cámara</h2>
+    <p class="lede">Cada línea compara un año con el primer año disponible (2018 = 100). "Cerca" es a 250 m o menos de una cámara; "lejos", el resto de la ciudad. Las dos caen en 2020 por la cuarentena; lo que importa es la distancia entre ellas después.</p>
+  </div>
+  <svg id="idx" class="chart" role="img" aria-label="Índice anual de siniestros cerca y lejos de una cámara"></svg>
+</section>
+
+<section class="block" aria-labelledby="h-vg">
+  <div class="head">
+    <p class="kicker">Gravedad</p>
+    <h2 id="h-vg">Gravedad de los siniestros por franja horaria</h2>
+    <p class="lede">Dentro de cada franja, el porcentaje de siniestros que dejó muertos, heridos o solo daños. Es un patrón de toda la ciudad, no solo de los corredores con cámara.</p>
+  </div>
+  <div class="mult" id="mult"></div>
+</section>
+
+<section class="block" aria-labelledby="h-inst">
+  <div class="head">
+    <p class="kicker">Instalación</p>
+    <h2 id="h-inst">Cuándo se prendieron las cámaras</h2>
+    <p class="lede">Las 92 cámaras no empezaron a operar todas el mismo día: se activaron de forma progresiva entre noviembre de 2019 y marzo de 2020.</p>
+  </div>
+  <svg id="instalacion" class="chart" role="img" aria-label="Cámaras activas acumuladas en el tiempo"></svg>
+</section>
+
+<section class="block" aria-labelledby="h-heat">
+  <div class="head">
+    <p class="kicker">Corredor por corredor</p>
+    <h2 id="h-heat">Siniestros por año en cada corredor</h2>
+    <p class="lede">Cada fila es un corredor con cámara y cada columna, un año. Entre más oscuro, más siniestros. Arriba, el total de todos los corredores por año. Abajo, en gris, el resto de la ciudad como referencia.</p>
+  </div>
+  <svg id="heat" class="chart" role="img" aria-label="Siniestros por año en cada corredor con cámara"></svg>
+  <p class="source">Las cámaras empezaron a operar entre noviembre de 2019 y marzo de 2020. Haz clic en una fila para ver el corredor en el explorador.</p>
+</section>
+
+<section class="block" aria-labelledby="h-efe">
+  <div class="head">
+    <p class="kicker">Efecto promedio</p>
+    <h2 id="h-efe">Efecto estimado por diferencias en diferencias</h2>
+    <p class="lede">Un modelo de Poisson con efectos fijos por mes compara los siniestros a 250 m o menos de una cámara frente al resto de la ciudad, antes y después de la instalación. Cada punto es el cambio estimado; la línea, su intervalo de confianza del 95 %. Si la línea cruza el 0 %, no se puede afirmar que hubo efecto.</p>
+  </div>
+  <svg id="efecto" class="chart" role="img" aria-label="Efecto promedio estimado por gravedad"></svg>
+  <p class="source">Intervalos por bootstrap (300 remuestreos). La distancia a la cámara es real solo en 2022; en 2018–2021 viene de un geocodificador propio con error mediano de 170 m (ver docs/PROCESO.md).</p>
 </section>
 
 <section class="block" id="explorar" aria-labelledby="h-exp">
   <div class="head">
     <p class="kicker">Explora</p>
     <h2 id="h-exp">Busca tu corredor</h2>
-    <p class="lede">Elige un corredor o cambia la capa del mapa. A la derecha, el gráfico de embudo muestra qué cambios son mayores de lo esperable: los corredores con pocos siniestros necesitan un cambio mayor para salir de la franja gris.</p>
+    <p class="lede">Elige un corredor, un tipo de siniestro, o cambia la capa del mapa. A la derecha, el gráfico de embudo muestra qué cambios son mayores de lo esperable: los corredores con pocos siniestros necesitan un cambio mayor para salir de la franja gris.</p>
   </div>
   <div class="exp-head"><div class="tabs view-tabs" role="tablist" aria-label="Qué ver en el mapa" id="flay"></div></div>
   <div class="filterbar" role="group" aria-label="Filtros">
     <label class="ctl"><span>Corredor</span><select id="fcorr"></select></label>
+    <label class="ctl"><span>Tipo de siniestro</span><select id="ftipo"></select></label>
     <button type="button" class="fclear" id="fclear" hidden>Limpiar filtros</button>
   </div>
   <div class="explorer">
@@ -72,41 +120,12 @@
     </div>
     <div class="exp-side">
       <p class="side-t" id="sideT"></p>
-      <p class="side-sub" id="sideSub">Eje vertical: cuánto cambió cada corredor frente a lo que cambió toda la ciudad. Tamaño: siniestros por año antes de las cámaras.</p>
+      <p class="side-sub" id="sideSub">Eje vertical: cuánto cambió cada corredor frente a lo que cambió toda la ciudad (línea punteada). Tamaño: siniestros por año antes de las cámaras.</p>
       <svg id="rank" role="img" aria-label="Cambio por corredor frente a lo esperado"></svg>
       <div id="side" hidden></div>
     </div>
   </div>
   <p class="sum" id="fsum"></p>
-</section>
-
-<section class="block" aria-labelledby="h-heat">
-  <div class="head">
-    <p class="kicker">Corredor por corredor</p>
-    <h2 id="h-heat">Siniestros por año en cada corredor</h2>
-    <p class="lede">Cada fila es un corredor con cámara y cada columna, un año. Entre más oscuro, más siniestros. Arriba, el total de todos los corredores por año.</p>
-  </div>
-  <svg id="heat" class="chart" role="img" aria-label="Siniestros por año en cada corredor con cámara"></svg>
-  <p class="source">Las cámaras empezaron a operar entre noviembre de 2019 y marzo de 2020. Haz clic en una fila para ver el corredor en el explorador.</p>
-</section>
-
-<section class="block" aria-labelledby="h-tend">
-  <div class="head">
-    <p class="kicker">Año por año</p>
-    <h2 id="h-tend">Siniestros por año, en corredores con cámara y sin cámara</h2>
-    <p class="lede">Cada línea compara un año con el primer año disponible (2018 = 100). Las dos caen en 2020 por la cuarentena; lo que importa es la distancia entre ellas después.</p>
-  </div>
-  <svg id="idx" class="chart" role="img" aria-label="Índice anual de siniestros en corredores con cámara y sin cámara"></svg>
-</section>
-
-<section class="block" aria-labelledby="h-efe">
-  <div class="head">
-    <p class="kicker">Efecto promedio</p>
-    <h2 id="h-efe">Efecto estimado por diferencias en diferencias</h2>
-    <p class="lede">Un modelo de Poisson con efectos fijos por mes compara los siniestros en corredores con cámara frente al resto de la ciudad, antes y después de la instalación. Cada punto es el cambio estimado; la línea, su intervalo de confianza del 95 %. Si la línea cruza el 0, no se puede afirmar que hubo efecto.</p>
-  </div>
-  <svg id="efecto" class="chart" role="img" aria-label="Efecto promedio estimado por gravedad"></svg>
-  <p class="source">Intervalos por bootstrap (300 remuestreos). Límite: el vínculo siniestro–corredor es por coincidencia de texto en la dirección, no por coordenadas, salvo en 2022.</p>
 </section>
 
 <section class="block" aria-labelledby="h-vel">
@@ -117,15 +136,6 @@
   </div>
   <svg id="dose" class="chart" role="img" aria-label="Cambio de velocidad p85 según cámaras por kilómetro"></svg>
   <p class="source" id="doseNote"></p>
-</section>
-
-<section class="block" aria-labelledby="h-vg">
-  <div class="head">
-    <p class="kicker">Gravedad</p>
-    <h2 id="h-vg">Gravedad de los siniestros por franja horaria</h2>
-    <p class="lede">Dentro de cada franja, el porcentaje de siniestros que dejó muertos, heridos o solo daños.</p>
-  </div>
-  <div class="mult" id="mult"></div>
 </section>
 
 <footer class="foot">
