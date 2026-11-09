@@ -29,13 +29,13 @@ function seg(sel, options, get, set) {
 let DATA, sitioById, rankByCorredor, ratioCiudad, maxDiff, maxDens, colorDens, colorPct;
 
 Promise.all([
-  d3.json('data/sitios.json'), d3.json('data/camaras.json'), d3.json('data/tramos.geojson'),
+  d3.json('data/sitios.json'), d3.json('data/tramos.geojson'),
   d3.json('data/corredores_ranking.json'), d3.json('data/tendencia.json'),
   d3.json('data/heatmap.json'), d3.json('data/efecto_promedio.json'),
   d3.json('data/exposicion_camaras.json'), d3.json('data/velocidad_gravedad.json'), d3.json('data/calidad.json'),
   d3.json('data/por_gravedad.json')
-]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad]) => {
-  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad };
+]).then(([sitios, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad]) => {
+  DATA = { sitios, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad };
   sitioById = new Map(sitios.map(s => [s.sitio, s]));
   tramos.features.forEach(f => { f.properties.camaras_km = f.properties.distancia_m > 0 ? f.properties.n_camaras / (f.properties.distancia_m / 1000) : 0; });
   setRanking(ranking);
@@ -46,12 +46,11 @@ Promise.all([
   initStory();
   initTrend();
   initVelGrav();
-  drawInstalacion();
   initHeat();
   drawEffect();
   initExplorer();
   initDose();
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(TG); drawEffect(); drawDose(DOSE_FR); drawHeat(heatFiltrado()); drawRank(); drawSide(); drawInstalacion(); }, 200); });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(TG); drawEffect(); drawDose(DOSE_FR); drawHeat(heatFiltrado()); drawRank(); drawSide(); }, 200); });
 }).catch(err => {
   document.body.insertAdjacentHTML('afterbegin',
     `<p style="padding:16px;color:#f05d5d">No se pudieron cargar los datos (${err.message}). Sirve la carpeta con <code>python3 -m http.server</code>; no abras el archivo directamente.</p>`);
@@ -120,7 +119,8 @@ function createMap(svgId, opt) {
   const path = d3.geoPath(proj);
   svg.append('rect').attr('width', W).attr('height', H).attr('fill', 'transparent');
   const gZoom = svg.append('g');
-  const gRoads = gZoom.append('g'), gCam = gZoom.append('g'), gDots = gZoom.append('g');
+  const gRoads = gZoom.append('g'), gCam = gZoom.append('g'), gDots = gZoom.append('g'), gInst = gZoom.append('g');
+  const instLabel = svg.append('text').attr('class', 'annb halo').attr('x', FB[0][0] + 4).attr('y', FB[0][1] + 20).style('opacity', 0);
   let T = d3.zoomIdentity, st = {};
   const zoom = d3.zoom().scaleExtent([1, 14]).translateExtent([[-300, -300], [W + 300, H + 300]])
     .on('zoom', ev => { T = ev.transform; gZoom.attr('transform', T); });
@@ -144,8 +144,29 @@ function createMap(svgId, opt) {
       .attr('stroke', d => st.lay === 'dens' ? colorDens(d.properties.camaras_km) : (st.corr && corredorDeTramo(d) === st.corr) ? C('--acc') : C('--acc3'))
       .attr('stroke-width', d => st.lay === 'dens' ? 2 + d.properties.camaras_km * 6 : (st.corr && corredorDeTramo(d) === st.corr) ? 3.2 : 2)
       .attr('opacity', d => !st.corr || corredorDeTramo(d) === st.corr ? 1 : 0.25);
-    drawDots(D);
+    gDots.style('display', st.lay === 'inst' ? 'none' : null);
+    gInst.style('display', st.lay === 'inst' ? null : 'none');
+    instLabel.transition('instfade').duration(dur(200)).style('opacity', st.lay === 'inst' ? 1 : 0);
+    if (st.lay === 'inst') playInstalacion(); else drawDots(D);
     if (opt.onRender) opt.onRender(st);
+  }
+
+  function playInstalacion() {
+    const orden = DATA.sitios.slice().filter(d => d.fecha_activacion)
+      .sort((a, b) => a.fecha_activacion < b.fecha_activacion ? -1 : 1);
+    const fechas = [...new Set(orden.map(d => d.fecha_activacion))];
+    const c = gInst.selectAll('circle').data(orden, d => d.sitio).join('circle')
+      .attr('cx', d => proj([d.lon, d.lat])[0]).attr('cy', d => proj([d.lon, d.lat])[1])
+      .attr('r', 0).attr('fill', C('--acc')).attr('stroke', '#fff').attr('stroke-width', 1.5)
+      .on('mousemove', (ev, d) => tipShow(`<b style="font-size:15px">${pretty(d.corredor)}</b><br>cámara activa desde <b>${fmtFechaInst(d.fecha_activacion)}</b>`, ev))
+      .on('mouseleave', tipHide);
+    const stepMs = dur(550);
+    fechas.forEach((f, i) => {
+      c.filter(d => d.fecha_activacion === f).transition().delay(i * stepMs).duration(dur(350)).attr('r', 5);
+      const hasta = orden.filter(d => d.fecha_activacion <= f).length;
+      instLabel.transition('insttext').delay(i * stepMs).duration(0)
+        .on('start', () => instLabel.text(`${fmtFechaInst(f)} · ${hasta} de ${orden.length} cámaras activas`));
+    });
   }
 
   function pass(s) { return !st.corr || s.corredor === st.corr; }
@@ -199,6 +220,7 @@ function initStory() {
   const leg = d3.select('#storyLegend');
   const L = {
     base: '<span><i class="l" style="background:var(--acc)"></i>Tramo con cámara</span><span><i class="c" style="border:1.6px solid var(--ink)"></i>Cruce con cámaras</span>',
+    inst: '<span><i class="c" style="border:1.6px solid var(--acc)"></i>Cruce con cámara ya activa</span>',
     dens: `<div class="leyenda-grad"><span>pocas cámaras/km</span><span class="barra" style="background:linear-gradient(90deg,${C('--acc3')},${C('--acc')})"></span><span>muchas</span></div><span><i class="l" style="background:var(--road2)"></i>Sin cámara (control)</span>`,
     sin: `<div class="leyenda-grad"><span>disminuyó</span><span class="barra" style="background:linear-gradient(90deg,${C('--neg')},${C('--mid')},${C('--pos')})"></span><span>aumentó</span></div>`
   };
@@ -206,7 +228,7 @@ function initStory() {
   d3.select('#topCorredores').text(top.map(r => pretty(r.corredor)).join(', '));
   const reduccion = (DATA.efecto.TODAS.razon_tasa - 1) * 100;
   d3.select('#efectoTexto').text(fmt(reduccion) + ' %');
-  const scenes = [[{ lay: 'base' }, L.base], [{ lay: 'base' }, L.base], [{ lay: 'dens' }, L.dens], [{ lay: 'sin' }, L.sin], [{ lay: 'sin' }, L.sin]];
+  const scenes = [[{ lay: 'base' }, L.base], [{ lay: 'inst' }, L.inst], [{ lay: 'dens' }, L.dens], [{ lay: 'sin' }, L.sin], [{ lay: 'sin' }, L.sin]];
   let cur = -1;
   const go = i => { if (i === cur) return; cur = i; map.render(scenes[i][0], true); leg.html(scenes[i][1]); };
   map.render(scenes[0][0], false); leg.html(scenes[0][1]);
@@ -525,32 +547,10 @@ function drawVelGrav(metrica) {
   });
 }
 
-function drawInstalacion() {
-  const fechas = DATA.camaras.map(c => c.fecha_activacion).filter(Boolean).sort();
-  const porFecha = d3.rollup(fechas, v => v.length, d => d);
-  const unicas = [...porFecha.keys()].sort();
-  let acum = 0;
-  const serie = unicas.map(f => { acum += porFecha.get(f); return { fecha: new Date(f), n: acum }; });
-  const svg = d3.select('#instalacion'), Wd = 1100, Hd = 260, m = { l: 46, r: 30, t: 20, b: 34 };
-  svg.attr('viewBox', `0 0 ${Wd} ${Hd}`); svg.selectAll('*').remove();
-  const x = d3.scaleTime().domain(d3.extent(serie, d => d.fecha)).range([m.l, Wd - m.r]);
-  const y = d3.scaleLinear().domain([0, d3.max(serie, d => d.n)]).nice().range([Hd - m.b, m.t]);
-  svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(Wd - m.l - m.r)))
-    .call(a => a.select('.domain').remove()).call(a => a.selectAll('.tick line').attr('stroke', C('--line')))
-    .selectAll('text').attr('class', 'ax');
-  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  const fmtMes = d => d.getDate() === 1 && d.getMonth() === 0 ? String(d.getFullYear()) : `${meses[d.getMonth()]} ${d.getFullYear()}`;
-  svg.append('g').attr('transform', `translate(0,${Hd - m.b})`).call(d3.axisBottom(x).ticks(5).tickSize(0).tickPadding(10).tickFormat(fmtMes))
-    .call(a => a.select('.domain').remove()).selectAll('text').attr('class', 'ax');
-  const area = d3.area().curve(d3.curveStepAfter).x(d => x(d.fecha)).y0(Hd - m.b).y1(d => y(d.n));
-  const line = d3.line().curve(d3.curveStepAfter).x(d => x(d.fecha)).y(d => y(d.n));
-  svg.append('path').datum(serie).attr('d', area).attr('fill', C('--acc3')).attr('opacity', 0.55);
-  svg.append('path').datum(serie).attr('d', line).attr('fill', 'none').attr('stroke', C('--acc')).attr('stroke-width', 2.5);
-  svg.append('g').selectAll('circle').data(serie).join('circle').attr('cx', d => x(d.fecha)).attr('cy', d => y(d.n)).attr('r', 3.5)
-    .attr('fill', C('--acc')).attr('stroke', '#fff').attr('stroke-width', 1.5)
-    .on('mousemove', (ev, d) => tipShow(`<b>${d.fecha.toISOString().slice(0, 10)}</b><br>${d.n} cámaras activas acumuladas`, ev))
-    .on('mouseleave', tipHide);
-  svg.append('text').attr('class', 'annb').attr('x', x(serie.at(-1).fecha)).attr('y', y(serie.at(-1).n) - 10).attr('text-anchor', 'end').text(`${serie.at(-1).n} cámaras`);
+const MESES_INST = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+function fmtFechaInst(f) {
+  const d = new Date(f + 'T00:00:00');
+  return `${d.getDate()} ${MESES_INST[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 })();
