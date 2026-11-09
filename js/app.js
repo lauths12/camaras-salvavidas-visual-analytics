@@ -432,7 +432,7 @@ function drawDose(franja) {
 
 let HG = '';
 function initHeat() {
-  seg('#hgrav', [['', 'Todos'], ['GH', 'Con heridos o muertos'], ['CON MUERTOS', 'Solo con muertos']], () => HG, v => { HG = v; drawHeat(heatFiltrado()); });
+  seg('#hgrav', [['', 'Todos'], ['SOLO DANOS', 'Solo con daños'], ['GH', 'Con heridos o muertos'], ['CON MUERTOS', 'Solo con muertos']], () => HG, v => { HG = v; drawHeat(heatFiltrado()); });
   drawHeat(DATA.heat);
 }
 function heatFiltrado() {
