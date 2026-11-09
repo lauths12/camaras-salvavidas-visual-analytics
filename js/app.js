@@ -33,9 +33,9 @@ Promise.all([
   d3.json('data/corredores_ranking.json'), d3.json('data/tendencia.json'),
   d3.json('data/heatmap.json'), d3.json('data/efecto_promedio.json'),
   d3.json('data/exposicion_camaras.json'), d3.json('data/velocidad_gravedad.json'), d3.json('data/calidad.json'),
-  d3.json('data/por_gravedad.json')
-]).then(([sitios, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad]) => {
-  DATA = { sitios, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad };
+  d3.json('data/por_gravedad.json'), d3.json('data/siniestros_mensual.json')
+]).then(([sitios, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad, mensual]) => {
+  DATA = { sitios, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad, mensual };
   sitioById = new Map(sitios.map(s => [s.sitio, s]));
   tramos.features.forEach(f => { f.properties.camaras_km = f.properties.distancia_m > 0 ? f.properties.n_camaras / (f.properties.distancia_m / 1000) : 0; });
   setRanking(ranking);
@@ -239,7 +239,7 @@ function initStory() {
   steps.each(function () { io.observe(this); });
 }
 
-const E = { lay: 'sin', corr: '', grav: '' };
+const E = { lay: 'sin', corr: '', grav: '', modo: 'real', corte: 0 };
 let EX;
 function initExplorer() {
   EX = createMap('#expMap', {
@@ -254,8 +254,15 @@ function initExplorer() {
   d3.select('#fcorr').selectAll('option').data([''].concat(corrs)).join('option').attr('value', d => d).text(d => d ? pretty(d) : 'Toda la ciudad');
   d3.select('#fcorr').on('change', function () { E.corr = this.value; updateExplorer(); });
   d3.select('#fgrav').selectAll('option').data([''].concat(DATA.porGravedad.gravedades)).join('option').attr('value', d => d).text(d => d ? gravedadLabel(d) : 'Todas');
-  d3.select('#fgrav').on('change', function () { E.grav = this.value; aplicarGravedad(); updateExplorer(); });
-  d3.select('#fclear').on('click', () => { E.corr = ''; E.grav = ''; d3.select('#fcorr').property('value', ''); d3.select('#fgrav').property('value', ''); aplicarGravedad(); updateExplorer(); });
+  d3.select('#fgrav').on('change', function () { E.grav = this.value; actualizarRanking(); updateExplorer(); });
+  const meses = DATA.mensual.meses;
+  E.corte = Math.max(1, meses.indexOf('2021-01'));
+  d3.select('#fcorte').attr('min', 1).attr('max', meses.length - 1).property('value', E.corte);
+  d3.select('#fcorte').on('input', function () { E.corte = +this.value; actualizarRanking(); updateExplorer(); });
+  const modoOpts = [['real', 'Fecha real de cada cámara'], ['corte', 'Corte manual']];
+  const syncModo = () => d3.select('#fmodo').selectAll('button').attr('aria-pressed', d => d[0] === E.modo);
+  seg('#fmodo', modoOpts, () => E.modo, v => { E.modo = v; actualizarRanking(); updateExplorer(); });
+  d3.select('#fclear').on('click', () => { E.corr = ''; E.grav = ''; E.modo = 'real'; d3.select('#fcorr').property('value', ''); d3.select('#fgrav').property('value', ''); syncModo(); actualizarRanking(); updateExplorer(); });
   d3.select('#zin').on('click', () => EX.zoomBy(1.6));
   d3.select('#zout').on('click', () => EX.zoomBy(1 / 1.6));
   d3.select('#zreset').on('click', () => { E.corr = ''; d3.select('#fcorr').property('value', ''); updateExplorer(); });
@@ -268,11 +275,22 @@ function showPin(d) {
     `<a class="pin-sv" href="${sv}" target="_blank" rel="noopener">Ver la calle en Street View ↗</a>`);
   d3.select('#pin .pin-x').on('click', () => d3.select('#pin').property('hidden', true));
 }
-function aplicarGravedad() {
-  setRanking(E.grav ? DATA.porGravedad.corredores.filter(r => r.gravedad === E.grav) : DATA.ranking);
+function rankingDesdeMensual(grav, idx) {
+  const g = grav || 'TODAS';
+  return DATA.mensual.filas.filter(r => r.gravedad === g).map(r => ({
+    corredor: r.corredor, es_control: r.es_control,
+    antes: d3.sum(r.serie.slice(0, idx)), despues: d3.sum(r.serie.slice(idx))
+  }));
+}
+function actualizarRanking() {
+  if (E.modo === 'corte') setRanking(rankingDesdeMensual(E.grav, E.corte));
+  else setRanking(E.grav ? DATA.porGravedad.corredores.filter(r => r.gravedad === E.grav) : DATA.ranking);
 }
 function updateFilterUI() {
-  d3.select('#fclear').property('hidden', !E.corr && !E.grav);
+  d3.select('#fclear').property('hidden', !E.corr && !E.grav && E.modo === 'real');
+  d3.select('#corteCtl').property('hidden', E.modo !== 'corte');
+  d3.select('#corteNota').property('hidden', E.modo !== 'corte');
+  if (E.modo === 'corte') d3.select('#fcorteVal').text(fmtMesCorte(DATA.mensual.meses[E.corte]));
 }
 function updateExplorer(animate = true) {
   d3.select('#expLegend').html(E.lay === 'dens'
@@ -334,6 +352,7 @@ function drawSummary() {
   const rows = E.corr ? base.filter(r => r.corredor === E.corr) : base;
   if (!rows.length) { el.text('Este corredor no tiene suficientes siniestros cerca de una cámara para calcular un cambio.'); return; }
   const a = d3.sum(rows, r => r.antes), d = d3.sum(rows, r => r.despues);
+  if (!a) { el.text('No hay siniestros antes de ese corte para calcular un cambio.'); return; }
   el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.`);
 }
 
@@ -551,6 +570,10 @@ const MESES_INST = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep
 function fmtFechaInst(f) {
   const d = new Date(f + 'T00:00:00');
   return `${d.getDate()} ${MESES_INST[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtMesCorte(ym) {
+  const [y, m] = ym.split('-');
+  return `${MESES_INST[+m - 1]} ${y}`;
 }
 
 })();

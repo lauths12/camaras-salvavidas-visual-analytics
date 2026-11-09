@@ -104,8 +104,11 @@
   <div class="filterbar" role="group" aria-label="Filtros">
     <label class="ctl"><span>Corredor</span><select id="fcorr"></select></label>
     <label class="ctl"><span>Gravedad</span><select id="fgrav"></select></label>
+    <label class="ctl"><span>Corte antes/después</span><div class="seg" id="fmodo"></div></label>
+    <label class="ctl ctl-corte" id="corteCtl" hidden><span>Después de</span><input type="range" id="fcorte" min="1" max="1" value="1" step="1"><b id="fcorteVal"></b></label>
     <button type="button" class="fclear" id="fclear" hidden>Limpiar filtros</button>
   </div>
+  <p class="source" id="corteNota" hidden>Corte exploratorio: compara todo lo que pasó antes de esa fecha contra todo lo que pasó después, sin excluir el periodo de instalación ni el de cuarentena. No es el modelo de efecto de la sección anterior.</p>
   <div class="explorer">
     <div class="exp-map">
       <svg id="expMap" role="img" aria-label="Mapa explorable de tramos y corredores"></svg>
