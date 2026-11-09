@@ -190,59 +190,39 @@ def construir_heatmap(df):
     print("heatmap filas:", len(filas))
 
 
-def tipo_de_clase(clase):
-    if pd.isna(clase):
-        return "SIN CLASIFICAR"
-    texto = str(clase).strip()
-    if texto.isdigit():
-        return "SIN CLASIFICAR"
-    normal = texto.lower()
-    if normal in ("vehiculo", "vehículo"):
-        return "VEHICULO"
-    if normal == "choque":
-        return "CHOQUE"
-    if normal == "atropello":
-        return "ATROPELLO"
-    if normal == "volcamiento":
-        return "VOLCAMIENTO"
-    return "OTROS"
-
-
-def construir_por_tipo(df):
-    sub = df.copy()
-    sub["tipo"] = sub["clase"].apply(tipo_de_clase)
+def construir_por_gravedad(df):
+    sub = df[df["gravedad"].isin(SEVERIDADES)].copy()
     con_corr = con_corredor(sub)
 
     corredores = []
-    for (corredor, tipo), grupo_df in con_corr.groupby(["corredor", "tipo"]):
+    for (corredor, gravedad), grupo_df in con_corr.groupby(["corredor", "gravedad"]):
         a = (grupo_df["periodo"] == "1_ANTES").sum()
         d = (grupo_df["periodo"] == "4_DESPUES").sum()
         cambio = None if a == 0 else round(100 * (d - a) / a, 1)
         corredores.append({
             "corredor": corredor,
-            "tipo": tipo,
+            "gravedad": gravedad,
             "antes": int(a),
             "despues": int(d),
             "cambio_pct": cambio,
             "es_control": corredor == CORREDOR_CONTROL,
         })
 
-    tabla = con_corr.groupby(["corredor", "anio", "tipo"]).size().reset_index(name="n")
+    tabla = con_corr.groupby(["corredor", "anio", "gravedad"]).size().reset_index(name="n")
     heatmap = [
         {
             "corredor": r["corredor"],
             "anio": int(r["anio"]),
-            "tipo": r["tipo"],
+            "gravedad": r["gravedad"],
             "n": int(r["n"]),
             "es_control": r["corredor"] == CORREDOR_CONTROL,
         }
         for _, r in tabla.iterrows()
     ]
 
-    tipos = sorted(sub["tipo"].unique().tolist())
-    with open(DATA_DIR / "por_tipo.json", "w", encoding="utf-8") as f:
-        json.dump({"tipos": tipos, "corredores": corredores, "heatmap": heatmap}, f, ensure_ascii=False)
-    print("por_tipo tipos:", tipos, "filas corredores:", len(corredores), "filas heatmap:", len(heatmap))
+    with open(DATA_DIR / "por_gravedad.json", "w", encoding="utf-8") as f:
+        json.dump({"gravedades": SEVERIDADES, "corredores": corredores, "heatmap": heatmap}, f, ensure_ascii=False)
+    print("por_gravedad filas corredores:", len(corredores), "filas heatmap:", len(heatmap))
 
 
 def construir_gravedad_franja(df):
@@ -288,7 +268,7 @@ def main():
     construir_tendencia(df)
     construir_corredores_ranking(df)
     construir_heatmap(df)
-    construir_por_tipo(df)
+    construir_por_gravedad(df)
     construir_gravedad_franja(df)
     construir_calidad()
 
