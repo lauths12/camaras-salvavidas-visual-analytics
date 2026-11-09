@@ -319,6 +319,36 @@ def construir_velocidad_gravedad(df):
     print("velocidad_gravedad celdas:", len(filas), f"union: {len(unidos)}/{total_candidatos} ({pct_unidos}%)")
 
 
+def construir_siniestros_mensual(df):
+    con_corr = con_corredor(df).copy()
+    con_corr["ym"] = con_corr["anio"].astype(int) * 100 + con_corr["mes"].astype(int)
+    meses = sorted(con_corr["ym"].unique().tolist())
+    idx_de_mes = {m: i for i, m in enumerate(meses)}
+
+    def serie_de(sub):
+        arr = [0] * len(meses)
+        for ym, n in sub.groupby("ym").size().items():
+            arr[idx_de_mes[ym]] = int(n)
+        return arr
+
+    filas = []
+    for corredor, grupo_df in con_corr.groupby("corredor"):
+        es_control = corredor == CORREDOR_CONTROL
+        filas.append({"corredor": corredor, "es_control": es_control, "gravedad": "TODAS", "serie": serie_de(grupo_df)})
+        for sev in SEVERIDADES:
+            filas.append({
+                "corredor": corredor,
+                "es_control": es_control,
+                "gravedad": sev,
+                "serie": serie_de(grupo_df[grupo_df["gravedad"] == sev]),
+            })
+
+    meses_fmt = [f"{m // 100}-{m % 100:02d}" for m in meses]
+    with open(DATA_DIR / "siniestros_mensual.json", "w", encoding="utf-8") as f:
+        json.dump({"meses": meses_fmt, "filas": filas}, f, ensure_ascii=False)
+    print("siniestros_mensual filas:", len(filas), "meses:", len(meses_fmt))
+
+
 def construir_calidad():
     df_total = pd.read_csv(CLEAN_DIR / "siniestros.csv")
     por_anio = []
@@ -344,6 +374,7 @@ def main():
     construir_heatmap(df)
     construir_por_gravedad(df)
     construir_velocidad_gravedad(df)
+    construir_siniestros_mensual(df)
     construir_calidad()
 
 
