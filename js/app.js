@@ -208,7 +208,7 @@ let EX;
 function initExplorer() {
   EX = createMap('#expMap', {
     interactive: true, W: 700, H: 820,
-    onClickSite: d => { E.corr = E.corr === d.corredor ? '' : d.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); },
+    onClickSite: d => { if (E.corr !== d.corredor) { E.corr = d.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); } showPin(d); },
     onRender: () => { drawRank(); drawSide(); drawSummary(); updateFilterUI(); }
   });
   d3.select('#flay').selectAll('button').data([['sin', 'Siniestros por corredor'], ['dens', 'Cámaras por km de tramo']]).join('button')
@@ -224,6 +224,13 @@ function initExplorer() {
   d3.select('#zout').on('click', () => EX.zoomBy(1 / 1.6));
   d3.select('#zreset').on('click', () => { E.corr = ''; d3.select('#fcorr').property('value', ''); updateExplorer(); });
   updateExplorer(false);
+}
+function showPin(d) {
+  const sv = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${d.lat},${d.lon}`;
+  d3.select('#pin').property('hidden', false).html(
+    `<button class="pin-x" aria-label="Cerrar">×</button>${EX.sitioHTML(d)}` +
+    `<a class="pin-sv" href="${sv}" target="_blank" rel="noopener">Ver la calle en Street View ↗</a>`);
+  d3.select('#pin .pin-x').on('click', () => d3.select('#pin').property('hidden', true));
 }
 function aplicarGravedad() {
   setRanking(E.grav ? DATA.porGravedad.corredores.filter(r => r.gravedad === E.grav) : DATA.ranking);
