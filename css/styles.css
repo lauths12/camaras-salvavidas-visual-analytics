@@ -39,9 +39,6 @@ p{margin:0}
 .hero-stats .big{font:800 clamp(28px,3vw,36px)/1 var(--f-disp);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .hero-stats span:last-child{font-size:14px;color:var(--ink2);line-height:1.35}
 .byline{font-size:14px;color:var(--muted)}
-.scrollcue{justify-self:start;font:700 14px var(--f-disp);color:#fff;background:var(--acc);text-decoration:none;border-radius:0;padding:11px 20px;margin-top:4px;}
-.scrollcue:hover{filter:brightness(1.08)}
-.scrollcue:focus-visible{outline:3px solid var(--acc3);outline-offset:3px}
 
 .scrolly{position:relative;background:#f5f6f8;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .sticky{position:sticky;top:0;height:100vh;width:100%;overflow:hidden}

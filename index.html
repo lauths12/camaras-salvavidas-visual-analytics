@@ -20,7 +20,6 @@
     <h1>Cámaras salvavidas</h1>
     <p class="dek">En 2019 Bogotá instaló 92 cámaras de velocidad en 40 cruces de sus avenidas. Con datos de siniestralidad y velocidad de 2018 a 2022, miramos qué cambió en los corredores con cámara frente al resto de la ciudad.</p>
     <div class="hero-stats" id="heroStats"></div>
-    <a href="#historia" class="scrollcue">desliza para ver la historia ↓</a>
   </div>
 </header>
 
@@ -59,16 +58,19 @@
     <h2 id="h-tend">Siniestros por año, cerca y lejos de una cámara</h2>
     <p class="lede">Cada línea compara un año con el primer año disponible (2018 = 100). "Cerca" es a 250 m o menos de una cámara; "lejos", el resto de la ciudad. Las dos caen en 2020 por la cuarentena; lo que importa es la distancia entre ellas después.</p>
   </div>
+  <div class="seg center" id="tgrav"></div>
   <svg id="idx" class="chart" role="img" aria-label="Índice anual de siniestros cerca y lejos de una cámara"></svg>
 </section>
 
 <section class="block" aria-labelledby="h-vg">
   <div class="head">
     <p class="kicker">Gravedad</p>
-    <h2 id="h-vg">Gravedad de los siniestros por franja horaria</h2>
-    <p class="lede">Dentro de cada franja, el porcentaje de siniestros que dejó muertos, heridos o solo daños. Es un patrón de toda la ciudad, no solo de los corredores con cámara.</p>
+    <h2 id="h-vg">Gravedad según la velocidad del tramo, por franja horaria</h2>
+    <p class="lede">Dentro de cada franja, los tramos cercanos a una cámara se agrupan en terciles de velocidad (lento/medio/rápido). Cada barra es el porcentaje de siniestros de esa franja y tercil que dejó muertos o heridos.</p>
   </div>
+  <div class="seg center" id="vchips"></div>
   <div class="mult" id="mult"></div>
+  <p class="source" id="vnote"></p>
 </section>
 
 <section class="block" aria-labelledby="h-inst">
@@ -86,6 +88,7 @@
     <h2 id="h-heat">Siniestros por año en cada corredor</h2>
     <p class="lede">Cada fila es un corredor con cámara y cada columna, un año. Entre más oscuro, más siniestros. Arriba, el total de todos los corredores por año. Abajo, en gris, el resto de la ciudad como referencia.</p>
   </div>
+  <div class="seg center" id="hgrav"></div>
   <svg id="heat" class="chart" role="img" aria-label="Siniestros por año en cada corredor con cámara"></svg>
   <p class="source">Las cámaras empezaron a operar entre noviembre de 2019 y marzo de 2020. Haz clic en una fila para ver el corredor en el explorador.</p>
 </section>
@@ -104,17 +107,18 @@
   <div class="head">
     <p class="kicker">Explora</p>
     <h2 id="h-exp">Busca tu corredor</h2>
-    <p class="lede">Elige un corredor, un tipo de siniestro, o cambia la capa del mapa. A la derecha, el gráfico de embudo muestra qué cambios son mayores de lo esperable: los corredores con pocos siniestros necesitan un cambio mayor para salir de la franja gris.</p>
+    <p class="lede">Elige un corredor, una gravedad, o cambia la capa del mapa. A la derecha, el gráfico de embudo muestra qué cambios son mayores de lo esperable: los corredores con pocos siniestros necesitan un cambio mayor para salir de la franja gris.</p>
   </div>
   <div class="exp-head"><div class="tabs view-tabs" role="tablist" aria-label="Qué ver en el mapa" id="flay"></div></div>
   <div class="filterbar" role="group" aria-label="Filtros">
     <label class="ctl"><span>Corredor</span><select id="fcorr"></select></label>
-    <label class="ctl"><span>Tipo de siniestro</span><select id="ftipo"></select></label>
+    <label class="ctl"><span>Gravedad</span><select id="fgrav"></select></label>
     <button type="button" class="fclear" id="fclear" hidden>Limpiar filtros</button>
   </div>
   <div class="explorer">
     <div class="exp-map">
       <svg id="expMap" role="img" aria-label="Mapa explorable de tramos y corredores"></svg>
+      <div id="pin" class="pin" hidden></div>
       <div class="zoombtns"><button type="button" id="zin" aria-label="Acercar">+</button><button type="button" id="zout" aria-label="Alejar">−</button><button type="button" id="zreset" aria-label="Ver toda la ciudad">⤢</button></div>
       <div class="maplegend inmap" id="expLegend"></div>
     </div>
@@ -134,6 +138,7 @@
     <h2 id="h-vel">Donde hay más cámaras por kilómetro, la velocidad cambia más</h2>
     <p class="lede">Cada punto es un tramo de Bitcarrier. Hacia la derecha, más cámaras por km; hacia abajo o arriba, cuánto cambió su velocidad p85 entre el periodo antes y el periodo después. La franja es donde quedó la mitad de los tramos sin cámara.</p>
   </div>
+  <div class="seg center" id="chips"></div>
   <svg id="dose" class="chart" role="img" aria-label="Cambio de velocidad p85 según cámaras por kilómetro"></svg>
   <p class="source" id="doseNote"></p>
 </section>

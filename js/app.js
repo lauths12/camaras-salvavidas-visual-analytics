@@ -19,16 +19,23 @@ function tipShow(html, ev) {
 }
 const tipHide = () => tipEl.style('opacity', 0);
 
+function seg(sel, options, get, set) {
+  const box = d3.select(sel);
+  box.selectAll('button').data(options).join('button').attr('type', 'button')
+    .text(d => d[1]).attr('aria-pressed', d => d[0] === get())
+    .on('click', (ev, d) => { set(d[0]); box.selectAll('button').attr('aria-pressed', o => o[0] === get()); });
+}
+
 let DATA, sitioById, rankByCorredor, ratioCiudad, maxDiff, maxDens, colorDens, colorPct;
 
 Promise.all([
   d3.json('data/sitios.json'), d3.json('data/camaras.json'), d3.json('data/tramos.geojson'),
   d3.json('data/corredores_ranking.json'), d3.json('data/tendencia.json'),
   d3.json('data/heatmap.json'), d3.json('data/efecto_promedio.json'),
-  d3.json('data/exposicion_camaras.json'), d3.json('data/gravedad_franja.json'), d3.json('data/calidad.json'),
-  d3.json('data/por_tipo.json')
-]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad, porTipo]) => {
-  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad, porTipo };
+  d3.json('data/exposicion_camaras.json'), d3.json('data/velocidad_gravedad.json'), d3.json('data/calidad.json'),
+  d3.json('data/por_gravedad.json')
+]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad]) => {
+  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad };
   sitioById = new Map(sitios.map(s => [s.sitio, s]));
   tramos.features.forEach(f => { f.properties.camaras_km = f.properties.distancia_m > 0 ? f.properties.n_camaras / (f.properties.distancia_m / 1000) : 0; });
   setRanking(ranking);
@@ -37,14 +44,14 @@ Promise.all([
   colorPct = d3.scaleLinear().domain([-100, 0, 100]).range([C('--neg'), C('--mid'), C('--pos')]).clamp(true);
   drawHero();
   initStory();
-  drawTrend();
-  drawVelGrav();
+  initTrend();
+  initVelGrav();
   drawInstalacion();
-  drawHeat(heat);
+  initHeat();
   drawEffect();
   initExplorer();
-  drawDose();
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(); drawEffect(); drawDose(); drawHeat(E.tipo ? DATA.porTipo.heatmap.filter(r => r.tipo === E.tipo) : DATA.heat); drawRank(); drawSide(); drawInstalacion(); }, 200); });
+  initDose();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(TG); drawEffect(); drawDose(DOSE_FR); drawHeat(heatFiltrado()); drawRank(); drawSide(); drawInstalacion(); }, 200); });
 }).catch(err => {
   document.body.insertAdjacentHTML('afterbegin',
     `<p style="padding:16px;color:#f05d5d">No se pudieron cargar los datos (${err.message}). Sirve la carpeta con <code>python3 -m http.server</code>; no abras el archivo directamente.</p>`);
@@ -74,9 +81,9 @@ function corredorDeTramo(f) {
   for (const id of ids) { const s = sitioById.get(id); if (s) return s.corredor; }
   return null;
 }
-function tipoLabel(t) {
-  const L = { CHOQUE: 'Choque', VEHICULO: 'Vehículo', ATROPELLO: 'Atropello', VOLCAMIENTO: 'Volcamiento', OTROS: 'Otros', 'SIN CLASIFICAR': 'Sin clasificar' };
-  return L[t] || t;
+function gravedadLabel(g) {
+  const L = { 'CON MUERTOS': 'Con muertos', 'CON HERIDOS': 'Con heridos', 'SOLO DANOS': 'Solo daños' };
+  return L[g] || g;
 }
 
 function drawHero() {
@@ -95,7 +102,7 @@ function drawHero() {
   });
   DATA.sitios.forEach(s => { const [x, y] = pj([s.lon, s.lat]); ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fillStyle = '#fff'; ctx.strokeStyle = C('--ink'); ctx.lineWidth = 1.4; ctx.fill(); ctx.stroke(); });
 
-  const ciudadCambio = (DATA.tendencia.CONTROL.at(-1).indice - 100);
+  const ciudadCambio = (DATA.tendencia.TODAS.CONTROL.at(-1).indice - 100);
   const muertos = DATA.efecto['CON MUERTOS'];
   const tiles = [
     { big: fmt((DATA.efecto.TODAS.razon_tasa - 1) * 100) + ' %', cls: DATA.efecto.TODAS.razon_tasa < 1 ? 'neg' : 'pos', d: 'siniestros a 250 m o menos de una cámara' },
@@ -144,14 +151,21 @@ function createMap(svgId, opt) {
   function pass(s) { return !st.corr || s.corredor === st.corr; }
   function muted(s, sin) { return !pass(s) || (sin && statsDe(rankByCorredor.get(s.corredor)).pct == null); }
 
+  function hl(corredor) {
+    gDots.selectAll('circle')
+      .attr('opacity', d => !corredor || d.corredor === corredor ? 1 : 0.35)
+      .attr('stroke-width', d => d.corredor === corredor ? 3 : (st.lay === 'sin' ? 1.5 : 1.6));
+    if (corredor) gDots.selectAll('circle').filter(d => d.corredor === corredor).raise();
+  }
+
   function drawDots(D) {
     const sin = st.lay === 'sin';
     const data = DATA.sitios.slice().sort((a, b) => Math.abs(statsDe(rankByCorredor.get(b.corredor)).diff) - Math.abs(statsDe(rankByCorredor.get(a.corredor)).diff));
     const c = gDots.selectAll('circle').data(data, d => d.sitio).join(e => e.append('circle').attr('r', 0))
       .style('cursor', opt.interactive ? 'pointer' : null)
       .attr('cx', d => proj([d.lon, d.lat])[0]).attr('cy', d => proj([d.lon, d.lat])[1])
-      .on('mousemove', (ev, d) => { if (pass(d)) tipShow(sitioHTML(d), ev); })
-      .on('mouseleave', tipHide)
+      .on('mousemove', (ev, d) => { if (pass(d)) { tipShow(sitioHTML(d), ev); hl(d.corredor); } })
+      .on('mouseleave', () => { tipHide(); hl(null); })
       .on('click', (ev, d) => { if (opt.onClickSite) opt.onClickSite(d); });
     c.transition().duration(D)
       .attr('r', d => muted(d, sin) ? 2.5 : sin ? rad(Math.abs(statsDe(rankByCorredor.get(d.corredor)).diff)) : 4.5)
@@ -173,7 +187,7 @@ function createMap(svgId, opt) {
   }
 
   return {
-    render, sitioHTML,
+    render, sitioHTML, hl,
     zoomBy: k => svg.transition().duration(dur(300)).call(zoom.scaleBy, k)
   };
 }
@@ -203,12 +217,12 @@ function initStory() {
   steps.each(function () { io.observe(this); });
 }
 
-const E = { lay: 'sin', corr: '', tipo: '' };
+const E = { lay: 'sin', corr: '', grav: '' };
 let EX;
 function initExplorer() {
   EX = createMap('#expMap', {
     interactive: true, W: 700, H: 820,
-    onClickSite: d => { E.corr = E.corr === d.corredor ? '' : d.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); },
+    onClickSite: d => { if (E.corr !== d.corredor) { E.corr = d.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); } showPin(d); },
     onRender: () => { drawRank(); drawSide(); drawSummary(); updateFilterUI(); }
   });
   d3.select('#flay').selectAll('button').data([['sin', 'Siniestros por corredor'], ['dens', 'Cámaras por km de tramo']]).join('button')
@@ -217,20 +231,26 @@ function initExplorer() {
   const corrs = [...new Set(DATA.sitios.map(s => s.corredor))].sort();
   d3.select('#fcorr').selectAll('option').data([''].concat(corrs)).join('option').attr('value', d => d).text(d => d ? pretty(d) : 'Toda la ciudad');
   d3.select('#fcorr').on('change', function () { E.corr = this.value; updateExplorer(); });
-  d3.select('#ftipo').selectAll('option').data([''].concat(DATA.porTipo.tipos)).join('option').attr('value', d => d).text(d => d ? tipoLabel(d) : 'Todos');
-  d3.select('#ftipo').on('change', function () { E.tipo = this.value; aplicarTipo(); updateExplorer(); });
-  d3.select('#fclear').on('click', () => { E.corr = ''; E.tipo = ''; d3.select('#fcorr').property('value', ''); d3.select('#ftipo').property('value', ''); aplicarTipo(); updateExplorer(); });
+  d3.select('#fgrav').selectAll('option').data([''].concat(DATA.porGravedad.gravedades)).join('option').attr('value', d => d).text(d => d ? gravedadLabel(d) : 'Todas');
+  d3.select('#fgrav').on('change', function () { E.grav = this.value; aplicarGravedad(); updateExplorer(); });
+  d3.select('#fclear').on('click', () => { E.corr = ''; E.grav = ''; d3.select('#fcorr').property('value', ''); d3.select('#fgrav').property('value', ''); aplicarGravedad(); updateExplorer(); });
   d3.select('#zin').on('click', () => EX.zoomBy(1.6));
   d3.select('#zout').on('click', () => EX.zoomBy(1 / 1.6));
   d3.select('#zreset').on('click', () => { E.corr = ''; d3.select('#fcorr').property('value', ''); updateExplorer(); });
   updateExplorer(false);
 }
-function aplicarTipo() {
-  setRanking(E.tipo ? DATA.porTipo.corredores.filter(r => r.tipo === E.tipo) : DATA.ranking);
-  drawHeat(E.tipo ? DATA.porTipo.heatmap.filter(r => r.tipo === E.tipo) : DATA.heat);
+function showPin(d) {
+  const sv = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${d.lat},${d.lon}`;
+  d3.select('#pin').property('hidden', false).html(
+    `<button class="pin-x" aria-label="Cerrar">×</button>${EX.sitioHTML(d)}` +
+    `<a class="pin-sv" href="${sv}" target="_blank" rel="noopener">Ver la calle en Street View ↗</a>`);
+  d3.select('#pin .pin-x').on('click', () => d3.select('#pin').property('hidden', true));
+}
+function aplicarGravedad() {
+  setRanking(E.grav ? DATA.porGravedad.corredores.filter(r => r.gravedad === E.grav) : DATA.ranking);
 }
 function updateFilterUI() {
-  d3.select('#fclear').property('hidden', !E.corr && !E.tipo);
+  d3.select('#fclear').property('hidden', !E.corr && !E.grav);
 }
 function updateExplorer(animate = true) {
   d3.select('#expLegend').html(E.lay === 'dens'
@@ -248,7 +268,7 @@ function drawRank() {
   svg.attr('viewBox', `0 0 ${Wr} ${Hr}`); svg.selectAll('*').remove();
   if (!pts.length || !ratioCiudad) {
     svg.append('text').attr('class', 'lab').attr('x', Wr / 2).attr('y', Hr / 2).attr('text-anchor', 'middle')
-      .text('No hay suficientes datos de este tipo después de 2020 para comparar.');
+      .text('No hay suficientes datos de esta gravedad para comparar.');
     return;
   }
   const xmax = d3.max(pts, p => p.a) * 1.08;
@@ -271,8 +291,8 @@ function drawRank() {
     .attr('cx', p => x(p.a)).attr('cy', p => y(p.st.pct)).attr('r', 6.5)
     .attr('fill', p => colorPct(p.st.pct)).attr('stroke', '#fff').attr('stroke-width', 1.5)
     .attr('opacity', p => !E.corr || p.r.corredor === E.corr ? 1 : 0.2).style('cursor', 'pointer')
-    .on('mousemove', (ev, p) => tipShow(`<b style="font-size:15px">${pretty(p.r.corredor)}</b><br>siniestros: antes <b>${nf(p.r.antes, 0)}</b> · después <b>${nf(p.r.despues, 0)}</b><br>cambio frente a lo esperado: <b>${fmt(p.st.pct)} %</b>`, ev))
-    .on('mouseleave', tipHide)
+    .on('mousemove', (ev, p) => { tipShow(`<b style="font-size:15px">${pretty(p.r.corredor)}</b><br>siniestros: antes <b>${nf(p.r.antes, 0)}</b> · después <b>${nf(p.r.despues, 0)}</b><br>cambio frente a lo esperado: <b>${fmt(p.st.pct)} %</b>`, ev); EX.hl(p.r.corredor); })
+    .on('mouseleave', () => { tipHide(); EX.hl(null); })
     .on('click', (ev, p) => { E.corr = E.corr === p.r.corredor ? '' : p.r.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); });
   pts.filter(p => clsDe(p.r) !== 'mid').forEach(p => {
     g.append('text').attr('class', 'ax halo').attr('x', x(p.a) + 10).attr('y', y(p.st.pct) + 4).text(pretty(p.r.corredor));
@@ -292,14 +312,19 @@ function drawSummary() {
   const rows = E.corr ? base.filter(r => r.corredor === E.corr) : base;
   if (!rows.length) { el.text('Este corredor no tiene suficientes siniestros cerca de una cámara para calcular un cambio.'); return; }
   const a = d3.sum(rows, r => r.antes), d = d3.sum(rows, r => r.despues);
-  const aviso = ratioCiudad ? '' : ' Este tipo casi no aparece así clasificado después de 2020 (cambio de taxonomía entre años, no un cambio real) — la comparación no es confiable.';
-  el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.${aviso}`);
+  el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.`);
 }
 
-function drawTrend() {
+let TG = 'TODAS';
+function initTrend() {
+  seg('#tgrav', [['TODAS', 'Todos'], ['CON HERIDOS', 'Con heridos'], ['CON MUERTOS', 'Con muertos']], () => TG, v => { TG = v; drawTrend(TG); });
+  drawTrend(TG);
+}
+function drawTrend(grav) {
+  const serieSet = DATA.tendencia[grav] || DATA.tendencia.TODAS;
   const svg = d3.select('#idx'), Wd = 1100, Hd = 420, m = { l: 46, r: 220, t: 30, b: 34 };
   svg.attr('viewBox', `0 0 ${Wd} ${Hd}`); svg.selectAll('*').remove();
-  const trat = DATA.tendencia.TRATAMIENTO, ctrl = DATA.tendencia.CONTROL, yrs = trat.map(d => d.anio);
+  const trat = serieSet.TRATAMIENTO, ctrl = serieSet.CONTROL, yrs = trat.map(d => d.anio);
   const all = trat.concat(ctrl).map(d => d.indice);
   const x = d3.scalePoint().domain(yrs).range([m.l, Wd - m.r]);
   const y = d3.scaleLinear().domain([Math.floor((d3.min(all) - 8) / 20) * 20, Math.ceil((d3.max(all) + 8) / 20) * 20]).range([Hd - m.b, m.t]);
@@ -345,10 +370,15 @@ function drawEffect() {
   });
 }
 
-function drawDose() {
+let DOSE_FR = 'TODAS';
+function initDose() {
+  seg('#chips', [['TODAS', 'Todas'], ['MADRUGADA', 'Madrugada'], ['PICO_MANANA', 'Pico mañana'], ['VALLE', 'Mediodía'], ['PICO_TARDE', 'Pico tarde'], ['NOCHE', 'Noche']], () => DOSE_FR, v => { DOSE_FR = v; drawDose(DOSE_FR); });
+  drawDose(DOSE_FR);
+}
+function drawDose(franja) {
   const feats = DATA.tramos.features;
   const byTid = new Map(feats.map(f => [f.properties.tid, f.properties]));
-  const pts = DATA.exposicion.map(e => Object.assign({}, e, byTid.get(e.tid))).filter(p => p.distancia_m > 0);
+  const pts = (DATA.exposicion[franja] || DATA.exposicion.TODAS).map(e => Object.assign({}, e, byTid.get(e.tid))).filter(p => p.distancia_m > 0);
   pts.forEach(p => { p.ckm = p.n_camaras / (p.distancia_m / 1000); });
   const control = pts.filter(p => !p.con_camara).map(p => p.delta_p85).sort(d3.ascending);
   const q1 = d3.quantile(control, 0.25), q3 = d3.quantile(control, 0.75), med = d3.quantile(control, 0.5);
@@ -378,6 +408,26 @@ function drawDose() {
   d3.select('#doseNote').text(worst ? `El tramo con mayor caída de velocidad es el ${worst.tid} (${fmt(worst.delta_p85)} km/h), con ${nf(worst.ckm, 2)} cámaras por km. Son ${treat.length} tramos con cámara: es una pista, no una prueba.` : '');
 }
 
+let HG = '';
+function initHeat() {
+  seg('#hgrav', [['', 'Todos'], ['GH', 'Con heridos o muertos'], ['CON MUERTOS', 'Solo con muertos']], () => HG, v => { HG = v; drawHeat(heatFiltrado()); });
+  drawHeat(DATA.heat);
+}
+function heatFiltrado() {
+  if (!HG) return DATA.heat;
+  const grs = HG === 'GH' ? ['CON HERIDOS', 'CON MUERTOS'] : [HG];
+  const filtradas = DATA.porGravedad.heatmap.filter(r => grs.includes(r.gravedad));
+  const sumas = new Map(), esControl = new Map();
+  filtradas.forEach(r => {
+    const k = r.corredor + '|' + r.anio;
+    sumas.set(k, (sumas.get(k) || 0) + r.n);
+    esControl.set(r.corredor, r.es_control);
+  });
+  return [...sumas.entries()].map(([k, n]) => {
+    const [corredor, anioStr] = k.split('|');
+    return { corredor, anio: Number(anioStr), n, es_control: esControl.get(corredor) };
+  });
+}
 function drawHeat(rowsIn) {
   const H = rowsIn || DATA.heat;
   const corredorH = H.filter(d => !d.es_control), controlH = H.filter(d => d.es_control);
@@ -431,11 +481,18 @@ function drawHeat(rowsIn) {
     .on('mouseleave', tipHide);
 }
 
-function drawVelGrav() {
+let VG = 'pct_muertos';
+function initVelGrav() {
+  seg('#vchips', [['pct_muertos', 'Con muertos'], ['pct_heridos', 'Con heridos']], () => VG, v => { VG = v; drawVelGrav(VG); });
+  drawVelGrav(VG);
+  const n = DATA.velGrav;
+  d3.select('#vnote').text(`Siniestros a 250 m o menos de una cámara, agrupados por el tercil de velocidad p85 del tramo más cercano en esa franja (lento/medio/rápido). ${nf(n.n_unidos, 0)} de ${nf(n.n_candidatos, 0)} siniestros (${nf(n.pct_unidos, 1)} %) se pudieron asociar a un tramo.`);
+}
+function drawVelGrav(metrica) {
   const names = { MADRUGADA: 'Madrugada', PICO_MANANA: 'Pico mañana', VALLE: 'Mediodía', PICO_TARDE: 'Pico tarde', NOCHE: 'Noche' };
   const orden = ['MADRUGADA', 'PICO_MANANA', 'VALLE', 'PICO_TARDE', 'NOCHE'];
-  const GRAV = [['CON MUERTOS', C('--pos')], ['CON HERIDOS', C('--acc2')], ['SOLO DANOS', C('--acc3')]];
-  const byFranja = d3.group(DATA.gravedad, d => d.franja);
+  const TERC = [['lento', C('--acc3')], ['medio', C('--acc2')], ['rapido', C('--acc')]];
+  const byFranja = d3.group(DATA.velGrav.celdas, d => d.franja);
   const cell = d3.select('#mult').selectAll('div.cell').data(orden).join(e => {
     const c = e.append('div').attr('class', 'cell');
     c.append('div').attr('class', 't');
@@ -446,25 +503,25 @@ function drawVelGrav() {
   cell.each(function (franja) {
     const bins = byFranja.get(franja) || [];
     const svg = d3.select(this).select('svg'), B = 178, T = 20;
-    const mx = d3.max(bins, b => b.pct) * 1.2 || 60;
+    const mx = d3.max(bins, b => b[metrica]) * 1.2 || 20;
     const y = d3.scaleLinear().domain([0, mx]).range([B, T]);
-    const x = d3.scaleBand().domain(GRAV.map(g => g[0])).range([28, 198]).padding(0.16);
+    const x = d3.scaleBand().domain(TERC.map(t => t[0])).range([28, 198]).padding(0.16);
     svg.selectAll('g.y').data([0]).join('g').attr('class', 'y').attr('transform', 'translate(24,0)')
       .call(d3.axisLeft(y).ticks(3).tickSize(-174).tickFormat(t => Math.round(t) + '%'))
       .call(a => a.select('.domain').remove()).call(a => a.selectAll('.tick line').attr('stroke', C('--line')))
       .selectAll('text').attr('class', 'ax');
-    svg.selectAll('rect.bar').data(GRAV, g => g[0]).join(e => e.append('rect').attr('class', 'bar').attr('y', B).attr('height', 0))
-      .attr('x', g => x(g[0])).attr('width', x.bandwidth()).attr('fill', g => g[1])
-      .on('mousemove', (ev, g) => { const b = bins.find(b => b.gravedad === g[0]); tipShow(`<b>${names[franja]} · ${g[0].toLowerCase()}</b><br>${b ? nf(b.n, 0) + ' siniestros · ' + nf(b.pct, 1) + ' %' : 'sin datos'}`, ev); })
+    svg.selectAll('rect.bar').data(TERC, t => t[0]).join(e => e.append('rect').attr('class', 'bar').attr('y', B).attr('height', 0))
+      .attr('x', t => x(t[0])).attr('width', x.bandwidth()).attr('fill', t => t[1])
+      .on('mousemove', (ev, t) => { const b = bins.find(b => b.tercil === t[0]); tipShow(`<b>${names[franja]} · tramos ${t[0]}s</b><br>${b && b.n ? nf(b.n, 0) + ' siniestros · ' + nf(b[metrica], 1) + ' %' : 'sin datos'}`, ev); })
       .on('mouseleave', tipHide)
-      .transition().duration(dur(500)).attr('y', g => { const b = bins.find(b => b.gravedad === g[0]); return y(b ? b.pct : 0); })
-      .attr('height', g => { const b = bins.find(b => b.gravedad === g[0]); return B - y(b ? b.pct : 0); });
-    svg.selectAll('text.val').data(GRAV, g => g[0]).join('text').attr('class', 'labb val').attr('text-anchor', 'middle')
-      .attr('x', g => x(g[0]) + x.bandwidth() / 2)
-      .text(g => { const b = bins.find(b => b.gravedad === g[0]); return b ? nf(b.pct, 1) : ''; })
-      .transition().duration(dur(500)).attr('y', g => { const b = bins.find(b => b.gravedad === g[0]); return y(b ? b.pct : 0) - 6; });
-    svg.selectAll('text.xl').data(GRAV, g => g[0]).join('text').attr('class', 'ax xl').attr('text-anchor', 'middle')
-      .attr('x', g => x(g[0]) + x.bandwidth() / 2).attr('y', B + 18).text(g => g[0] === 'CON MUERTOS' ? 'Muertos' : g[0] === 'CON HERIDOS' ? 'Heridos' : 'Solo daños');
+      .transition().duration(dur(500)).attr('y', t => { const b = bins.find(b => b.tercil === t[0]); return y(b && b[metrica] != null ? b[metrica] : 0); })
+      .attr('height', t => { const b = bins.find(b => b.tercil === t[0]); return B - y(b && b[metrica] != null ? b[metrica] : 0); });
+    svg.selectAll('text.val').data(TERC, t => t[0]).join('text').attr('class', 'labb val').attr('text-anchor', 'middle')
+      .attr('x', t => x(t[0]) + x.bandwidth() / 2)
+      .text(t => { const b = bins.find(b => b.tercil === t[0]); return b && b[metrica] != null ? nf(b[metrica], 1) : ''; })
+      .transition().duration(dur(500)).attr('y', t => { const b = bins.find(b => b.tercil === t[0]); return y(b && b[metrica] != null ? b[metrica] : 0) - 6; });
+    svg.selectAll('text.xl').data(TERC, t => t[0]).join('text').attr('class', 'ax xl').attr('text-anchor', 'middle')
+      .attr('x', t => x(t[0]) + x.bandwidth() / 2).attr('y', B + 18).text(t => t[0] === 'lento' ? 'Lentos' : t[0] === 'medio' ? 'Medios' : 'Rápidos');
   });
 }
 
