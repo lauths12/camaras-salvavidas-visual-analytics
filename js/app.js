@@ -32,10 +32,10 @@ Promise.all([
   d3.json('data/sitios.json'), d3.json('data/camaras.json'), d3.json('data/tramos.geojson'),
   d3.json('data/corredores_ranking.json'), d3.json('data/tendencia.json'),
   d3.json('data/heatmap.json'), d3.json('data/efecto_promedio.json'),
-  d3.json('data/exposicion_camaras.json'), d3.json('data/gravedad_franja.json'), d3.json('data/calidad.json'),
+  d3.json('data/exposicion_camaras.json'), d3.json('data/velocidad_gravedad.json'), d3.json('data/calidad.json'),
   d3.json('data/por_gravedad.json')
-]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad, porGravedad]) => {
-  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, gravedad, calidad, porGravedad };
+]).then(([sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad]) => {
+  DATA = { sitios, camaras, tramos, ranking, tendencia, heat, efecto, exposicion, velGrav, calidad, porGravedad };
   sitioById = new Map(sitios.map(s => [s.sitio, s]));
   tramos.features.forEach(f => { f.properties.camaras_km = f.properties.distancia_m > 0 ? f.properties.n_camaras / (f.properties.distancia_m / 1000) : 0; });
   setRanking(ranking);
@@ -44,14 +44,14 @@ Promise.all([
   colorPct = d3.scaleLinear().domain([-100, 0, 100]).range([C('--neg'), C('--mid'), C('--pos')]).clamp(true);
   drawHero();
   initStory();
-  drawTrend();
-  drawVelGrav();
+  initTrend();
+  initVelGrav();
   drawInstalacion();
   initHeat();
   drawEffect();
   initExplorer();
-  drawDose();
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(); drawEffect(); drawDose(); drawHeat(heatFiltrado()); drawRank(); drawSide(); drawInstalacion(); }, 200); });
+  initDose();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(TG); drawEffect(); drawDose(DOSE_FR); drawHeat(heatFiltrado()); drawRank(); drawSide(); drawInstalacion(); }, 200); });
 }).catch(err => {
   document.body.insertAdjacentHTML('afterbegin',
     `<p style="padding:16px;color:#f05d5d">No se pudieron cargar los datos (${err.message}). Sirve la carpeta con <code>python3 -m http.server</code>; no abras el archivo directamente.</p>`);
@@ -102,7 +102,7 @@ function drawHero() {
   });
   DATA.sitios.forEach(s => { const [x, y] = pj([s.lon, s.lat]); ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fillStyle = '#fff'; ctx.strokeStyle = C('--ink'); ctx.lineWidth = 1.4; ctx.fill(); ctx.stroke(); });
 
-  const ciudadCambio = (DATA.tendencia.CONTROL.at(-1).indice - 100);
+  const ciudadCambio = (DATA.tendencia.TODAS.CONTROL.at(-1).indice - 100);
   const muertos = DATA.efecto['CON MUERTOS'];
   const tiles = [
     { big: fmt((DATA.efecto.TODAS.razon_tasa - 1) * 100) + ' %', cls: DATA.efecto.TODAS.razon_tasa < 1 ? 'neg' : 'pos', d: 'siniestros a 250 m o menos de una cámara' },
@@ -315,10 +315,16 @@ function drawSummary() {
   el.html(`<b>${rows.length}</b> corredor${rows.length > 1 ? 'es' : ''} con dato · siniestros de <b>${nf(a, 0)}</b> a <b>${nf(d, 0)}</b> (${fmt((d / a - 1) * 100)} %). Resto de la ciudad: ${fmt((ratioCiudad - 1) * 100)} %.`);
 }
 
-function drawTrend() {
+let TG = 'TODAS';
+function initTrend() {
+  seg('#tgrav', [['TODAS', 'Todos'], ['CON HERIDOS', 'Con heridos'], ['CON MUERTOS', 'Con muertos']], () => TG, v => { TG = v; drawTrend(TG); });
+  drawTrend(TG);
+}
+function drawTrend(grav) {
+  const serieSet = DATA.tendencia[grav] || DATA.tendencia.TODAS;
   const svg = d3.select('#idx'), Wd = 1100, Hd = 420, m = { l: 46, r: 220, t: 30, b: 34 };
   svg.attr('viewBox', `0 0 ${Wd} ${Hd}`); svg.selectAll('*').remove();
-  const trat = DATA.tendencia.TRATAMIENTO, ctrl = DATA.tendencia.CONTROL, yrs = trat.map(d => d.anio);
+  const trat = serieSet.TRATAMIENTO, ctrl = serieSet.CONTROL, yrs = trat.map(d => d.anio);
   const all = trat.concat(ctrl).map(d => d.indice);
   const x = d3.scalePoint().domain(yrs).range([m.l, Wd - m.r]);
   const y = d3.scaleLinear().domain([Math.floor((d3.min(all) - 8) / 20) * 20, Math.ceil((d3.max(all) + 8) / 20) * 20]).range([Hd - m.b, m.t]);
@@ -364,10 +370,15 @@ function drawEffect() {
   });
 }
 
-function drawDose() {
+let DOSE_FR = 'TODAS';
+function initDose() {
+  seg('#chips', [['TODAS', 'Todas'], ['MADRUGADA', 'Madrugada'], ['PICO_MANANA', 'Pico mañana'], ['VALLE', 'Mediodía'], ['PICO_TARDE', 'Pico tarde'], ['NOCHE', 'Noche']], () => DOSE_FR, v => { DOSE_FR = v; drawDose(DOSE_FR); });
+  drawDose(DOSE_FR);
+}
+function drawDose(franja) {
   const feats = DATA.tramos.features;
   const byTid = new Map(feats.map(f => [f.properties.tid, f.properties]));
-  const pts = DATA.exposicion.map(e => Object.assign({}, e, byTid.get(e.tid))).filter(p => p.distancia_m > 0);
+  const pts = (DATA.exposicion[franja] || DATA.exposicion.TODAS).map(e => Object.assign({}, e, byTid.get(e.tid))).filter(p => p.distancia_m > 0);
   pts.forEach(p => { p.ckm = p.n_camaras / (p.distancia_m / 1000); });
   const control = pts.filter(p => !p.con_camara).map(p => p.delta_p85).sort(d3.ascending);
   const q1 = d3.quantile(control, 0.25), q3 = d3.quantile(control, 0.75), med = d3.quantile(control, 0.5);
@@ -470,11 +481,18 @@ function drawHeat(rowsIn) {
     .on('mouseleave', tipHide);
 }
 
-function drawVelGrav() {
+let VG = 'pct_muertos';
+function initVelGrav() {
+  seg('#vchips', [['pct_muertos', 'Con muertos'], ['pct_heridos', 'Con heridos']], () => VG, v => { VG = v; drawVelGrav(VG); });
+  drawVelGrav(VG);
+  const n = DATA.velGrav;
+  d3.select('#vnote').text(`Siniestros a 250 m o menos de una cámara, agrupados por el tercil de velocidad p85 del tramo más cercano en esa franja (lento/medio/rápido). ${nf(n.n_unidos, 0)} de ${nf(n.n_candidatos, 0)} siniestros (${nf(n.pct_unidos, 1)} %) se pudieron asociar a un tramo.`);
+}
+function drawVelGrav(metrica) {
   const names = { MADRUGADA: 'Madrugada', PICO_MANANA: 'Pico mañana', VALLE: 'Mediodía', PICO_TARDE: 'Pico tarde', NOCHE: 'Noche' };
   const orden = ['MADRUGADA', 'PICO_MANANA', 'VALLE', 'PICO_TARDE', 'NOCHE'];
-  const GRAV = [['CON MUERTOS', C('--pos')], ['CON HERIDOS', C('--acc2')], ['SOLO DANOS', C('--acc3')]];
-  const byFranja = d3.group(DATA.gravedad, d => d.franja);
+  const TERC = [['lento', C('--acc3')], ['medio', C('--acc2')], ['rapido', C('--acc')]];
+  const byFranja = d3.group(DATA.velGrav.celdas, d => d.franja);
   const cell = d3.select('#mult').selectAll('div.cell').data(orden).join(e => {
     const c = e.append('div').attr('class', 'cell');
     c.append('div').attr('class', 't');
@@ -485,25 +503,25 @@ function drawVelGrav() {
   cell.each(function (franja) {
     const bins = byFranja.get(franja) || [];
     const svg = d3.select(this).select('svg'), B = 178, T = 20;
-    const mx = d3.max(bins, b => b.pct) * 1.2 || 60;
+    const mx = d3.max(bins, b => b[metrica]) * 1.2 || 20;
     const y = d3.scaleLinear().domain([0, mx]).range([B, T]);
-    const x = d3.scaleBand().domain(GRAV.map(g => g[0])).range([28, 198]).padding(0.16);
+    const x = d3.scaleBand().domain(TERC.map(t => t[0])).range([28, 198]).padding(0.16);
     svg.selectAll('g.y').data([0]).join('g').attr('class', 'y').attr('transform', 'translate(24,0)')
       .call(d3.axisLeft(y).ticks(3).tickSize(-174).tickFormat(t => Math.round(t) + '%'))
       .call(a => a.select('.domain').remove()).call(a => a.selectAll('.tick line').attr('stroke', C('--line')))
       .selectAll('text').attr('class', 'ax');
-    svg.selectAll('rect.bar').data(GRAV, g => g[0]).join(e => e.append('rect').attr('class', 'bar').attr('y', B).attr('height', 0))
-      .attr('x', g => x(g[0])).attr('width', x.bandwidth()).attr('fill', g => g[1])
-      .on('mousemove', (ev, g) => { const b = bins.find(b => b.gravedad === g[0]); tipShow(`<b>${names[franja]} · ${g[0].toLowerCase()}</b><br>${b ? nf(b.n, 0) + ' siniestros · ' + nf(b.pct, 1) + ' %' : 'sin datos'}`, ev); })
+    svg.selectAll('rect.bar').data(TERC, t => t[0]).join(e => e.append('rect').attr('class', 'bar').attr('y', B).attr('height', 0))
+      .attr('x', t => x(t[0])).attr('width', x.bandwidth()).attr('fill', t => t[1])
+      .on('mousemove', (ev, t) => { const b = bins.find(b => b.tercil === t[0]); tipShow(`<b>${names[franja]} · tramos ${t[0]}s</b><br>${b && b.n ? nf(b.n, 0) + ' siniestros · ' + nf(b[metrica], 1) + ' %' : 'sin datos'}`, ev); })
       .on('mouseleave', tipHide)
-      .transition().duration(dur(500)).attr('y', g => { const b = bins.find(b => b.gravedad === g[0]); return y(b ? b.pct : 0); })
-      .attr('height', g => { const b = bins.find(b => b.gravedad === g[0]); return B - y(b ? b.pct : 0); });
-    svg.selectAll('text.val').data(GRAV, g => g[0]).join('text').attr('class', 'labb val').attr('text-anchor', 'middle')
-      .attr('x', g => x(g[0]) + x.bandwidth() / 2)
-      .text(g => { const b = bins.find(b => b.gravedad === g[0]); return b ? nf(b.pct, 1) : ''; })
-      .transition().duration(dur(500)).attr('y', g => { const b = bins.find(b => b.gravedad === g[0]); return y(b ? b.pct : 0) - 6; });
-    svg.selectAll('text.xl').data(GRAV, g => g[0]).join('text').attr('class', 'ax xl').attr('text-anchor', 'middle')
-      .attr('x', g => x(g[0]) + x.bandwidth() / 2).attr('y', B + 18).text(g => g[0] === 'CON MUERTOS' ? 'Muertos' : g[0] === 'CON HERIDOS' ? 'Heridos' : 'Solo daños');
+      .transition().duration(dur(500)).attr('y', t => { const b = bins.find(b => b.tercil === t[0]); return y(b && b[metrica] != null ? b[metrica] : 0); })
+      .attr('height', t => { const b = bins.find(b => b.tercil === t[0]); return B - y(b && b[metrica] != null ? b[metrica] : 0); });
+    svg.selectAll('text.val').data(TERC, t => t[0]).join('text').attr('class', 'labb val').attr('text-anchor', 'middle')
+      .attr('x', t => x(t[0]) + x.bandwidth() / 2)
+      .text(t => { const b = bins.find(b => b.tercil === t[0]); return b && b[metrica] != null ? nf(b[metrica], 1) : ''; })
+      .transition().duration(dur(500)).attr('y', t => { const b = bins.find(b => b.tercil === t[0]); return y(b && b[metrica] != null ? b[metrica] : 0) - 6; });
+    svg.selectAll('text.xl').data(TERC, t => t[0]).join('text').attr('class', 'ax xl').attr('text-anchor', 'middle')
+      .attr('x', t => x(t[0]) + x.bandwidth() / 2).attr('y', B + 18).text(t => t[0] === 'lento' ? 'Lentos' : t[0] === 'medio' ? 'Medios' : 'Rápidos');
   });
 }
 

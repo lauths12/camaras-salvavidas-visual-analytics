@@ -118,20 +118,30 @@ def construir_efecto_por_radio():
     print("efecto_por_radio:", resultados)
 
 
-def construir_tendencia(df):
-    conteos = df.groupby(["grupo", "anio"]).size().reset_index(name="n")
+def _serie_tendencia(df_subset):
+    conteos = df_subset.groupby(["grupo", "anio"]).size().reset_index(name="n")
     series = {}
     for grupo, sub in conteos.groupby("grupo"):
         sub = sub.sort_values("anio")
+        if sub.empty:
+            continue
         base_n = sub.iloc[0]["n"]
-        serie = [
-            {"anio": int(r["anio"]), "n": int(r["n"]), "indice": round(100 * r["n"] / base_n, 1)}
+        series[grupo] = [
+            {"anio": int(r["anio"]), "n": int(r["n"]), "indice": round(100 * r["n"] / base_n, 1) if base_n else None}
             for _, r in sub.iterrows()
         ]
-        series[grupo] = serie
+    for grupo in ("TRATAMIENTO", "CONTROL"):
+        series.setdefault(grupo, [])
+    return series
+
+
+def construir_tendencia(df):
+    resultado = {"TODAS": _serie_tendencia(df)}
+    for sev in SEVERIDADES:
+        resultado[sev] = _serie_tendencia(df[df["gravedad"] == sev])
     with open(DATA_DIR / "tendencia.json", "w", encoding="utf-8") as f:
-        json.dump(series, f, ensure_ascii=False)
-    print("tendencia:", {k: len(v) for k, v in series.items()})
+        json.dump(resultado, f, ensure_ascii=False)
+    print("tendencia:", {k: {g: len(v) for g, v in s.items()} for k, s in resultado.items()})
 
 
 CORREDOR_CONTROL = "Resto de la ciudad (control)"
@@ -225,24 +235,88 @@ def construir_por_gravedad(df):
     print("por_gravedad filas corredores:", len(corredores), "filas heatmap:", len(heatmap))
 
 
-def construir_gravedad_franja(df):
-    sub = df.copy()
+def periodo_de_velocidad(anio, mes):
+    fecha = f"{anio:04d}-{mes:02d}-15"
+    if fecha < "2019-11-01":
+        return "1_ANTES"
+    if fecha < "2020-03-25":
+        return "2_INSTALACION"
+    if fecha < "2021-01-01":
+        return "3_COVID_2020"
+    return "4_DESPUES"
+
+
+def cargar_sitio_a_tid():
+    sitios = pd.read_csv(CLEAN_DIR / "sitios.csv")
+    mapa = {}
+    for _, r in sitios.iterrows():
+        tids = str(r["tids"]).split(";") if pd.notna(r["tids"]) and r["tids"] else []
+        if tids and tids[0]:
+            mapa[r["sitio"]] = int(tids[0])
+    return mapa
+
+
+FRANJAS_ORDEN = ["MADRUGADA", "PICO_MANANA", "VALLE", "PICO_TARDE", "NOCHE"]
+TERCILES_ORDEN = ["lento", "medio", "rapido"]
+
+
+def construir_velocidad_gravedad(df):
+    vel = pd.read_csv(CLEAN_DIR / "velocidad_mensual.csv")
+    vel["periodo"] = vel.apply(lambda r: periodo_de_velocidad(int(r["anio"]), int(r["mes"])), axis=1)
+    vel_antes = vel[vel["periodo"] == "1_ANTES"]
+
+    tercil_tramo = {}
+    for franja, sub in vel_antes.groupby("franja"):
+        prom = sub.groupby("tid")["vel_p85"].mean()
+        if len(prom) < 3:
+            continue
+        cortes = prom.quantile([1 / 3, 2 / 3]).values
+        for tid, v in prom.items():
+            if v <= cortes[0]:
+                etiqueta = "lento"
+            elif v > cortes[1]:
+                etiqueta = "rapido"
+            else:
+                etiqueta = "medio"
+            tercil_tramo[(franja, int(tid))] = etiqueta
+
+    sitio_a_tid = cargar_sitio_a_tid()
+
+    sub = df[(df["grupo"] == "TRATAMIENTO") & df["sitio_cercano"].notna() & df["gravedad"].isin(SEVERIDADES)].copy()
     sub["franja"] = sub["hora"].apply(franja_de_hora)
-    sub = sub[sub["franja"].notna() & sub["gravedad"].notna()]
-    tabla = sub.groupby(["franja", "gravedad"]).size().reset_index(name="n")
-    totales = sub.groupby("franja").size().to_dict()
+    sub = sub[sub["franja"].notna()]
+    sub["tid"] = sub["sitio_cercano"].map(sitio_a_tid)
+    total_candidatos = len(sub)
+    sub["tercil"] = sub.apply(
+        lambda r: tercil_tramo.get((r["franja"], r["tid"])) if pd.notna(r["tid"]) else None, axis=1
+    )
+    unidos = sub[sub["tercil"].notna()].copy()
+
     filas = []
-    for _, r in tabla.iterrows():
-        total = totales[r["franja"]]
-        filas.append({
-            "franja": r["franja"],
-            "gravedad": r["gravedad"],
-            "n": int(r["n"]),
-            "pct": round(100 * r["n"] / total, 2),
-        })
-    with open(DATA_DIR / "gravedad_franja.json", "w", encoding="utf-8") as f:
-        json.dump(filas, f, ensure_ascii=False)
-    print("gravedad_franja filas:", len(filas))
+    for franja in FRANJAS_ORDEN:
+        for tercil in TERCILES_ORDEN:
+            grupo = unidos[(unidos["franja"] == franja) & (unidos["tercil"] == tercil)]
+            n = len(grupo)
+            if n == 0:
+                filas.append({"franja": franja, "tercil": tercil, "n": 0, "pct_muertos": None, "pct_heridos": None})
+                continue
+            filas.append({
+                "franja": franja,
+                "tercil": tercil,
+                "n": n,
+                "pct_muertos": round(100 * (grupo["gravedad"] == "CON MUERTOS").sum() / n, 2),
+                "pct_heridos": round(100 * (grupo["gravedad"] == "CON HERIDOS").sum() / n, 2),
+            })
+
+    pct_unidos = round(100 * len(unidos) / total_candidatos, 1) if total_candidatos else 0.0
+    with open(DATA_DIR / "velocidad_gravedad.json", "w", encoding="utf-8") as f:
+        json.dump({
+            "celdas": filas,
+            "n_candidatos": total_candidatos,
+            "n_unidos": len(unidos),
+            "pct_unidos": pct_unidos,
+        }, f, ensure_ascii=False)
+    print("velocidad_gravedad celdas:", len(filas), f"union: {len(unidos)}/{total_candidatos} ({pct_unidos}%)")
 
 
 def construir_calidad():
@@ -269,7 +343,7 @@ def main():
     construir_corredores_ranking(df)
     construir_heatmap(df)
     construir_por_gravedad(df)
-    construir_gravedad_franja(df)
+    construir_velocidad_gravedad(df)
     construir_calidad()
 
 
