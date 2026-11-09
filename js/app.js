@@ -19,6 +19,13 @@ function tipShow(html, ev) {
 }
 const tipHide = () => tipEl.style('opacity', 0);
 
+function seg(sel, options, get, set) {
+  const box = d3.select(sel);
+  box.selectAll('button').data(options).join('button').attr('type', 'button')
+    .text(d => d[1]).attr('aria-pressed', d => d[0] === get())
+    .on('click', (ev, d) => { set(d[0]); box.selectAll('button').attr('aria-pressed', o => o[0] === get()); });
+}
+
 let DATA, sitioById, rankByCorredor, ratioCiudad, maxDiff, maxDens, colorDens, colorPct;
 
 Promise.all([
@@ -40,11 +47,11 @@ Promise.all([
   drawTrend();
   drawVelGrav();
   drawInstalacion();
-  drawHeat(heat);
+  initHeat();
   drawEffect();
   initExplorer();
   drawDose();
-  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(); drawEffect(); drawDose(); drawHeat(E.grav ? DATA.porGravedad.heatmap.filter(r => r.gravedad === E.grav) : DATA.heat); drawRank(); drawSide(); drawInstalacion(); }, 200); });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawHero(); drawTrend(); drawEffect(); drawDose(); drawHeat(heatFiltrado()); drawRank(); drawSide(); drawInstalacion(); }, 200); });
 }).catch(err => {
   document.body.insertAdjacentHTML('afterbegin',
     `<p style="padding:16px;color:#f05d5d">No se pudieron cargar los datos (${err.message}). Sirve la carpeta con <code>python3 -m http.server</code>; no abras el archivo directamente.</p>`);
@@ -144,14 +151,21 @@ function createMap(svgId, opt) {
   function pass(s) { return !st.corr || s.corredor === st.corr; }
   function muted(s, sin) { return !pass(s) || (sin && statsDe(rankByCorredor.get(s.corredor)).pct == null); }
 
+  function hl(corredor) {
+    gDots.selectAll('circle')
+      .attr('opacity', d => !corredor || d.corredor === corredor ? 1 : 0.35)
+      .attr('stroke-width', d => d.corredor === corredor ? 3 : (st.lay === 'sin' ? 1.5 : 1.6));
+    if (corredor) gDots.selectAll('circle').filter(d => d.corredor === corredor).raise();
+  }
+
   function drawDots(D) {
     const sin = st.lay === 'sin';
     const data = DATA.sitios.slice().sort((a, b) => Math.abs(statsDe(rankByCorredor.get(b.corredor)).diff) - Math.abs(statsDe(rankByCorredor.get(a.corredor)).diff));
     const c = gDots.selectAll('circle').data(data, d => d.sitio).join(e => e.append('circle').attr('r', 0))
       .style('cursor', opt.interactive ? 'pointer' : null)
       .attr('cx', d => proj([d.lon, d.lat])[0]).attr('cy', d => proj([d.lon, d.lat])[1])
-      .on('mousemove', (ev, d) => { if (pass(d)) tipShow(sitioHTML(d), ev); })
-      .on('mouseleave', tipHide)
+      .on('mousemove', (ev, d) => { if (pass(d)) { tipShow(sitioHTML(d), ev); hl(d.corredor); } })
+      .on('mouseleave', () => { tipHide(); hl(null); })
       .on('click', (ev, d) => { if (opt.onClickSite) opt.onClickSite(d); });
     c.transition().duration(D)
       .attr('r', d => muted(d, sin) ? 2.5 : sin ? rad(Math.abs(statsDe(rankByCorredor.get(d.corredor)).diff)) : 4.5)
@@ -173,7 +187,7 @@ function createMap(svgId, opt) {
   }
 
   return {
-    render, sitioHTML,
+    render, sitioHTML, hl,
     zoomBy: k => svg.transition().duration(dur(300)).call(zoom.scaleBy, k)
   };
 }
@@ -234,7 +248,6 @@ function showPin(d) {
 }
 function aplicarGravedad() {
   setRanking(E.grav ? DATA.porGravedad.corredores.filter(r => r.gravedad === E.grav) : DATA.ranking);
-  drawHeat(E.grav ? DATA.porGravedad.heatmap.filter(r => r.gravedad === E.grav) : DATA.heat);
 }
 function updateFilterUI() {
   d3.select('#fclear').property('hidden', !E.corr && !E.grav);
@@ -278,8 +291,8 @@ function drawRank() {
     .attr('cx', p => x(p.a)).attr('cy', p => y(p.st.pct)).attr('r', 6.5)
     .attr('fill', p => colorPct(p.st.pct)).attr('stroke', '#fff').attr('stroke-width', 1.5)
     .attr('opacity', p => !E.corr || p.r.corredor === E.corr ? 1 : 0.2).style('cursor', 'pointer')
-    .on('mousemove', (ev, p) => tipShow(`<b style="font-size:15px">${pretty(p.r.corredor)}</b><br>siniestros: antes <b>${nf(p.r.antes, 0)}</b> · después <b>${nf(p.r.despues, 0)}</b><br>cambio frente a lo esperado: <b>${fmt(p.st.pct)} %</b>`, ev))
-    .on('mouseleave', tipHide)
+    .on('mousemove', (ev, p) => { tipShow(`<b style="font-size:15px">${pretty(p.r.corredor)}</b><br>siniestros: antes <b>${nf(p.r.antes, 0)}</b> · después <b>${nf(p.r.despues, 0)}</b><br>cambio frente a lo esperado: <b>${fmt(p.st.pct)} %</b>`, ev); EX.hl(p.r.corredor); })
+    .on('mouseleave', () => { tipHide(); EX.hl(null); })
     .on('click', (ev, p) => { E.corr = E.corr === p.r.corredor ? '' : p.r.corredor; d3.select('#fcorr').property('value', E.corr); updateExplorer(); });
   pts.filter(p => clsDe(p.r) !== 'mid').forEach(p => {
     g.append('text').attr('class', 'ax halo').attr('x', x(p.a) + 10).attr('y', y(p.st.pct) + 4).text(pretty(p.r.corredor));
@@ -384,6 +397,26 @@ function drawDose() {
   d3.select('#doseNote').text(worst ? `El tramo con mayor caída de velocidad es el ${worst.tid} (${fmt(worst.delta_p85)} km/h), con ${nf(worst.ckm, 2)} cámaras por km. Son ${treat.length} tramos con cámara: es una pista, no una prueba.` : '');
 }
 
+let HG = '';
+function initHeat() {
+  seg('#hgrav', [['', 'Todos'], ['GH', 'Con heridos o muertos'], ['CON MUERTOS', 'Solo con muertos']], () => HG, v => { HG = v; drawHeat(heatFiltrado()); });
+  drawHeat(DATA.heat);
+}
+function heatFiltrado() {
+  if (!HG) return DATA.heat;
+  const grs = HG === 'GH' ? ['CON HERIDOS', 'CON MUERTOS'] : [HG];
+  const filtradas = DATA.porGravedad.heatmap.filter(r => grs.includes(r.gravedad));
+  const sumas = new Map(), esControl = new Map();
+  filtradas.forEach(r => {
+    const k = r.corredor + '|' + r.anio;
+    sumas.set(k, (sumas.get(k) || 0) + r.n);
+    esControl.set(r.corredor, r.es_control);
+  });
+  return [...sumas.entries()].map(([k, n]) => {
+    const [corredor, anioStr] = k.split('|');
+    return { corredor, anio: Number(anioStr), n, es_control: esControl.get(corredor) };
+  });
+}
 function drawHeat(rowsIn) {
   const H = rowsIn || DATA.heat;
   const corredorH = H.filter(d => !d.es_control), controlH = H.filter(d => d.es_control);
