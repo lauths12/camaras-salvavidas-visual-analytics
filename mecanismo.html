@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cámaras Salvavidas · Del resultado al mecanismo</title>
+<meta name="description" content="Sitio por sitio: dónde cambiaron los siniestros graves cerca de las cámaras salvavidas de Bogotá, si ahí también cambió la velocidad y si las dos cosas se relacionan.">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/mecanismo.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+</head>
+<body>
+
+<nav class="mec-top" aria-label="Navegación">
+  <a href="index.html" class="mec-back">← Volver al tablero</a>
+</nav>
+
+<section class="block mec-intro" aria-labelledby="h-mec">
+  <div class="head">
+    <p class="kicker">Del resultado al mecanismo</p>
+    <h1 id="h-mec">¿Bajó la velocidad donde bajaron los siniestros?</h1>
+    <p class="lede">Sitio por sitio: dónde cambiaron los siniestros graves, si ahí también bajó la velocidad y si las dos cosas se relacionan.</p>
+  </div>
+</section>
+
+<section class="mec-scrolly" id="mecanismo" aria-label="Recorrido por escenas">
+  <div class="mec-graphic">
+    <div class="seg" id="mecToggle" role="group" aria-label="Capa del mapa"></div>
+    <svg id="mecGraph" class="chart" role="img" aria-label="Gráfico de la escena actual"></svg>
+    <div id="mecLegend" class="mec-legend" aria-live="polite"></div>
+  </div>
+  <div class="mec-steps">
+    <div class="mec-step" data-mscene="0">
+      <div class="mec-card">
+        <p class="mec-n">1 de 6 · ¿Dónde bajaron los siniestros graves?</p>
+        <p>Cada círculo es uno de los <b data-mec="n_sitios">—</b> sitios con cámara. El color compara el cambio de siniestros graves (con heridos o muertos) a <span data-mec="radio_m">—</span> m o menos del sitio con el cambio en el resto de la ciudad. <b class="mec-t-baja">Azul</b>: bajaron más que en el control. <b class="mec-t-sube">Naranja</b>: subieron más.</p>
+        <p>Bajaron más que en la ciudad en <b data-mec="n_sin_bajan">—</b> sitios y subieron más en <b data-mec="n_sin_suben">—</b>.</p>
+      </div>
+    </div>
+    <div class="mec-step" data-mscene="1">
+      <div class="mec-card">
+        <p class="mec-n">2 de 6 · ¿Bajó también la velocidad?</p>
+        <p>Los mismos sitios, ahora con el percentil 85 de la velocidad nocturna. De noche el tráfico fluye y se ve el exceso de velocidad; de día la velocidad refleja sobre todo la congestión. Los círculos vacíos no tienen sensor cerca.</p>
+        <p>Frente al resto de la ciudad, la velocidad nocturna subió <span data-mec="umbral_vel">—</span> km/h o más en <b data-mec="n_vel_sube">—</b> de los <b data-mec="n_con_velocidad">—</b> sitios con sensor, y bajó esa cantidad o más en <b data-mec="n_vel_baja">—</b>.</p>
+      </div>
+    </div>
+    <div class="mec-step" data-mscene="2">
+      <div class="mec-card">
+        <p class="mec-n">3 de 6 · ¿Coinciden los dos mapas?</p>
+        <p>En <b data-mec="n_bajan_ambos">—</b> de los <b data-mec="n_con_ambos">—</b> sitios con datos bajaron la velocidad y los siniestros a la vez. En <b data-mec="n_suben_ambos">—</b> subieron los dos.</p>
+      </div>
+    </div>
+    <div class="mec-step" data-mscene="3">
+      <div class="mec-card">
+        <p class="mec-n">4 de 6 · ¿Se relacionan velocidad y siniestros?</p>
+        <p>Cada punto es un sitio. Si las cámaras redujeran los siniestros porque bajan la velocidad, los puntos caerían en la esquina inferior izquierda. Ahí quedan <b data-mec="n_cuadrante_bi">—</b>, y de ellos solo en <b data-mec="n_bi_vel_clara">—</b> la velocidad bajó <span data-mec="umbral_vel">—</span> km/h o más frente al control (fuera de la franja gris).</p>
+        <p>Correlación: r = <b data-mec="r_pearson">—</b> con <span data-mec="n_correlacion">—</span> sitios, que usan solo <span data-mec="n_tramos_distintos">—</span> combinaciones de sensores distintas, porque varios sitios comparten tramo. Es una relación <span data-mec="r_fuerza">—</span>: una señal, no una prueba de causalidad.</p>
+      </div>
+    </div>
+    <div class="mec-step" data-mscene="4">
+      <div class="mec-card">
+        <p class="mec-n">5 de 6 · ¿En qué franja cambia más la velocidad?</p>
+        <p>Distribución del cambio de velocidad tramo por tramo en cada franja. Si el efecto existe, debería verse sobre todo de noche y en la madrugada.</p>
+        <p>De noche, la mediana de los <span data-mec="n_tramos_cam">—</span> tramos con cámara cambió <b data-mec="noche_con">—</b> km/h, y la de los tramos sin cámara <b data-mec="noche_sin">—</b> km/h.</p>
+      </div>
+    </div>
+    <div class="mec-step" data-mscene="5">
+      <div class="mec-card">
+        <p class="mec-n">6 de 6 · ¿A quién protegen las cámaras?</p>
+        <p>Peatones y motociclistas son los más expuestos al exceso de velocidad. ¿Cambió su participación entre las víctimas cerca de las cámaras más que en el resto de la ciudad?</p>
+        <p>Peatones: de <b data-mec="peaton_cerca_antes">—</b> a <b data-mec="peaton_cerca_despues">—</b> de las víctimas cerca de las cámaras, y de <span data-mec="peaton_ctrl_antes">—</span> a <span data-mec="peaton_ctrl_despues">—</span> en el resto de la ciudad. Motociclistas: de <b data-mec="moto_cerca_antes">—</b> a <b data-mec="moto_cerca_despues">—</b> cerca, y de <span data-mec="moto_ctrl_antes">—</span> a <span data-mec="moto_ctrl_despues">—</span> en el resto.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block mec-end">
+  <p class="source" id="mecNota"></p>
+  <a href="index.html" class="mec-back">← Volver al tablero</a>
+</section>
+
+<div class="tip" id="tip" role="tooltip"></div>
+<script src="js/mecanismo.js"></script>
+</body>
+</html>

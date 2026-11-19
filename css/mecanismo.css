@@ -1,0 +1,76 @@
+/* Página «Del resultado al mecanismo» (mecanismo.html).
+   Se carga después de styles.css; solo define clases .mec-* y tokens --mec-*. */
+
+:root{
+  /* Escala divergente: azul = bajó, gris = sin cambio claro, naranja = subió */
+  --mec-baja-fuerte:#1f5fa8;
+  --mec-baja:#86b0df;
+  --mec-igual:#e2e4e8;
+  --mec-sube:#f0a868;
+  --mec-sube-fuerte:#c85a12;
+  --mec-borde:#8f96a3;
+  --mec-franja:rgba(154,161,171,.13);
+}
+
+/* Navegación */
+.mec-top{max-width:1280px;margin:0 auto;padding:14px var(--gut) 0}
+.mec-back{display:inline-flex;align-items:center;min-height:44px;padding:0 2px;font:600 15px var(--f-body);color:var(--acc);text-decoration:none;justify-self:start}
+.mec-back:hover{text-decoration:underline;text-underline-offset:3px}
+.mec-back:focus-visible{outline:3px solid var(--acc3);outline-offset:2px}
+
+/* Intro y cierre */
+.mec-intro{padding-top:36px}
+.mec-intro h1{font-size:clamp(34px,4.6vw,58px);line-height:1.06;max-width:20ch}
+.mec-end{padding-top:40px;padding-bottom:80px}
+
+/* Scrollytelling: gráfica sticky a la izquierda, pasos a la derecha */
+.mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:44px;align-items:start}
+.mec-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:16px 0}
+.mec-graphic svg{width:100%;height:auto;max-height:calc(100vh - 170px)}
+.mec-graphic .seg{align-self:flex-start}
+.mec-toggle-off{visibility:hidden}
+.mec-steps{padding:28vh 0 45vh}
+.mec-step{min-height:80vh;display:flex;align-items:center}
+.mec-step[hidden]{display:none!important}
+.mec-card{display:grid;gap:12px;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--glass-line);box-shadow:var(--shadow);padding:22px 24px;opacity:.45;transform:translateY(8px);transition:opacity .35s,transform .35s}
+.mec-step.is-active .mec-card{opacity:1;transform:none}
+.mec-card p{font-size:18px;line-height:1.55;color:var(--ink2)}
+.mec-card b{color:var(--ink)}
+.mec-card .mec-n{font:700 12px var(--f-disp);letter-spacing:.1em;color:var(--acc);text-transform:uppercase;line-height:1.4}
+.mec-t-baja{color:var(--mec-baja-fuerte)!important}
+.mec-t-sube{color:var(--mec-sube-fuerte)!important}
+
+/* Leyenda bajo la gráfica */
+.mec-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:13.5px;line-height:1.35;color:var(--ink2);min-height:44px}
+.mec-legend .mec-sw{display:inline-flex;align-items:center;gap:6px}
+.mec-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--mec-borde);flex:none}
+.mec-legend i.vacio{background:#fff;border-style:dashed}
+.mec-legend i.linea{width:22px;height:3px;border:0;border-radius:0}
+.mec-legend i.caja{border-radius:0;width:14px}
+.mec-legend .mec-nota{color:var(--muted);flex-basis:100%}
+.mec-tabla{border-collapse:collapse;font-size:13px;width:auto}
+.mec-tabla th,.mec-tabla td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
+.mec-tabla th{font:700 11px var(--f-disp);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.mec-tabla td.si{font-weight:700;color:#fff}
+.mec-tabla td.baja{background:var(--mec-baja-fuerte)}
+.mec-tabla td.sube{background:var(--mec-sube-fuerte)}
+.mec-tabla td:last-child,.mec-tabla th:last-child{text-align:center}
+
+/* Textos dentro del SVG */
+.mec-cuad{font:600 12.5px var(--f-body);fill:var(--muted)}
+.mec-hl{font:700 14px var(--f-disp);fill:var(--acc)}
+
+@media (max-width:820px){
+  /* Una columna: la gráfica queda pegada arriba y los pasos pasan por debajo */
+  .mec-scrolly{display:block;margin-top:24px}
+  /* alto fijo: si cambiara con la leyenda, empujaría los pasos y se activaría la escena equivocada */
+  .mec-graphic{height:64vh;overflow:hidden;justify-content:flex-start;z-index:4;background:var(--bg);padding:8px 0 6px;border-bottom:1px solid var(--line);gap:6px}
+  .mec-graphic svg{max-height:40vh;padding:4px;flex:none}
+  .mec-graphic .seg button{padding:6px 10px;font-size:12.5px}
+  .mec-legend{font-size:12px;gap:4px 12px;min-height:0}
+  .mec-tabla{font-size:12px}
+  .mec-steps{position:relative;z-index:1;padding:6vh 0 45vh}
+  .mec-step{min-height:55vh;align-items:flex-start}
+  .mec-card{padding:16px 18px}
+  .mec-card p{font-size:16.5px}
+}

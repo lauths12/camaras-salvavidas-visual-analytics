@@ -9,6 +9,7 @@ PASOS = [
     "build_geocodificacion.py",
     "build_efecto.py",
     "build_exposicion.py",
+    "build_mecanismo.py",
 ]
 
 
