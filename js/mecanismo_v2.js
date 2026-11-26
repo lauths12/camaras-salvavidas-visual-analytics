@@ -101,7 +101,7 @@
       return d3.interpolateLab(BIV.centro, d3.interpolateHcl(bajo, alto)(v))(Math.pow(r, 0.85));
     }
     const gradCSS = (fn) => `linear-gradient(90deg, ${d3.range(0, 1.0001, 0.125).map(t => fn(-1 + 2 * t)).join(',')})`;
-    const barra = (fn, izq, der) => `<span class="v2-grad"><span>${izq}</span><i style="background:${gradCSS(fn)}"></i><span>${der}</span></span>`;
+    const barra = (fn, izq, der) => `<span class="v2-grad"><i style="background:${gradCSS(fn)}"></i><span class="v2-grad-lbl"><span>${izq}</span><span>${der}</span></span></span>`;
     function leyenda2D(n = 7, conEtiquetas = true) {
       const c = 13, pad = 4, size = n * c;
       let cells = '';
@@ -492,14 +492,17 @@
           (hayVacios('vel') ? swVacio('sin sensor cercano') : '') +
           `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche).</span>`);
       } else {
-        const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
-        leyenda(leyenda2D(7, false) +
-          `<table class="mec-tabla" aria-label="Sitios según la dirección del cambio">
-             <tr><th></th><th>Velocidad baja</th><th>Velocidad sube</th></tr>
-             <tr><th>Siniestros bajan</th><td class="si" style="background:${BIV.bb}">${t.baja.baja}</td><td class="si" style="background:${BIV.bs}">${t.baja.sube}</td></tr>
-             <tr><th>Siniestros suben</th><td class="si" style="background:${BIV.sb}">${t.sube.baja}</td><td class="si" style="background:${BIV.ss}">${t.sube.sube}</td></tr>
-           </table>`);
+        leyenda(leyenda2D(7, false) + tabla2x2());
       }
+    }
+
+    function tabla2x2() {
+      const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
+      return `<table class="mec-tabla" aria-label="Sitios según la dirección del cambio">
+          <tr><th></th><th>Velocidad baja</th><th>Velocidad sube</th></tr>
+          <tr><th>Siniestros bajan</th><td class="si" style="background:${BIV.bb}">${t.baja.baja}</td><td class="si" style="background:${BIV.bs}">${t.baja.sube}</td></tr>
+          <tr><th>Siniestros suben</th><td class="si" style="background:${BIV.sb}">${t.sube.baja}</td><td class="si" style="background:${BIV.ss}">${t.sube.sube}</td></tr>
+        </table>`;
     }
 
     // ----- Escenas -----
@@ -548,10 +551,10 @@
         .attr('cx', d => d._valid ? d._sx : d._mx).attr('cy', d => d._valid ? d._sy : d._my).attr('r', d => d._r)
         .attr('fill', d => estilo(d, 'coi').fill).attr('stroke', COL.ink2).attr('stroke-width', 0.8)
         .style('opacity', d => d._valid ? 1 : 0);
-      leyenda(leyenda2D(5) +
+      leyenda(leyenda2D(5, false) + tabla2x2() +
         `<span class="mec-sw"><b>r = ${nf(meta.r_pearson, 2)}</b>&nbsp;(Spearman ${nf(meta.r_spearman, 2)}, n = ${nf(meta.n_correlacion)})</span>` +
         sw(COL.ink2, 'tendencia (mínimos cuadrados)', 'linea') +
-        `<span class="mec-nota">El fondo y los puntos usan los mismos colores del mapa "Coinciden". Los sitios que comparten sensor quedan en la misma columna. Las flechas marcan valores que se salen del eje.</span>`);
+        `<span class="mec-nota">Los sitios que comparten sensor quedan en la misma columna. Las flechas marcan valores que se salen del eje.</span>`);
     }
 
     function ocultarSitios(D) {
