@@ -223,30 +223,36 @@
       this.textContent = v == null ? '—' : v;
     });
 
-    // ----- Portada: mapa de fondo + cifras clave -----
+    // ----- Portada: mapa de fondo animado (carritos que a veces chocan) + cifras clave -----
+    let heroRaf = null;
     function drawHero() {
       const cv = document.getElementById('heroRoads');
       if (!cv) return;
+      if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = null; }
       const box = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
       cv.width = box.width * dpr; cv.height = box.height * dpr;
       const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-      const w = box.width, h = box.height, left = w > 820 ? w * 0.5 : 0;
+      const w = box.width, h = box.height, left = 0;
       const pj = d3.geoMercator().fitExtent([[left, 20], [w - 20, h - 20]], tramos);
       const p = d3.geoPath(pj, ctx);
-      ctx.clearRect(0, 0, w, h); ctx.lineCap = 'round';
+
+      // Capa estática (tramos + sitios) pre-renderizada aparte: se redibuja cada frame sin recalcular.
+      const off = document.createElement('canvas');
+      off.width = cv.width; off.height = cv.height;
+      const octx = off.getContext('2d'); octx.scale(dpr, dpr); octx.lineCap = 'round';
       tramos.features.forEach(f => {
-        ctx.beginPath(); p(f);
-        ctx.strokeStyle = COL.road; ctx.globalAlpha = f.properties.con_camara ? .9 : .5;
-        ctx.lineWidth = f.properties.con_camara ? 1.6 : 1;
-        ctx.stroke();
+        octx.beginPath(); d3.geoPath(pj, octx)(f);
+        octx.strokeStyle = COL.road; octx.globalAlpha = f.properties.con_camara ? .9 : .5;
+        octx.lineWidth = f.properties.con_camara ? 1.6 : 1;
+        octx.stroke();
       });
-      ctx.globalAlpha = 1;
+      octx.globalAlpha = 1;
       sitios.forEach(s => {
         const [x, y] = pj([s.lon, s.lat]);
         const col = s._valid ? bivColor(s.cambio_vs_control_pct, s.delta_p85_vs_control) : COL.muted;
-        ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 7);
-        ctx.fillStyle = col; ctx.strokeStyle = COL.fondo; ctx.lineWidth = 1.2;
-        ctx.fill(); ctx.stroke();
+        octx.beginPath(); octx.arc(x, y, 3.4, 0, 7);
+        octx.fillStyle = col; octx.strokeStyle = COL.fondo; octx.lineWidth = 1.2;
+        octx.fill(); octx.stroke();
       });
 
       const tiles = [
@@ -255,6 +261,69 @@
         { big: `r = ${V.r_pearson}`, cls: 'mid', d: 'correlación entre cambio de velocidad y de siniestros, sitio por sitio' }
       ];
       d3.select('#mecHeroStats').selectAll('div').data(tiles).join('div').html(d => `<span class="big ${d.cls}">${d.big}</span><span>${d.d}</span>`);
+
+      // ----- Carritos: cada uno recorre un tramo real; a veces "choca" y brilla en rojo -----
+      const lines = [];
+      tramos.features.forEach(f => {
+        const g = f.geometry;
+        const multi = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+        multi.forEach(coords => {
+          if (!coords || coords.length < 2) return;
+          const pts = coords.map(c => pj(c));
+          let len = 0; const cum = [0];
+          for (let i = 1; i < pts.length; i++) { len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(len); }
+          if (len > 18) lines.push({ pts, cum, len });
+        });
+      });
+      if (reduce || !lines.length) { ctx.clearRect(0, 0, w, h); ctx.drawImage(off, 0, 0, w, h); return; }
+
+      function at(line, t) {
+        const target = Math.max(0, Math.min(line.len, t * line.len));
+        let i = 1; while (i < line.cum.length && line.cum[i] < target) i++;
+        i = Math.min(i, line.pts.length - 1);
+        const segLen = (line.cum[i] - line.cum[i - 1]) || 1, segT = (target - line.cum[i - 1]) / segLen;
+        const [x0, y0] = line.pts[i - 1], [x1, y1] = line.pts[i];
+        return { x: x0 + (x1 - x0) * segT, y: y0 + (y1 - y0) * segT, ang: Math.atan2(y1 - y0, x1 - x0) };
+      }
+      function spawn() {
+        return {
+          line: lines[Math.floor(Math.random() * lines.length)],
+          t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1,
+          speed: 0.00028 + Math.random() * 0.00032,
+          crashAt: 0
+        };
+      }
+      const N = Math.min(18, Math.max(9, Math.round(lines.length / 28)));
+      const cars = d3.range(N).map(spawn);
+
+      function tick(now) {
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(off, 0, 0, w, h);
+        cars.forEach(c => {
+          if (c.crashAt) {
+            const el = now - c.crashAt;
+            if (el > 850) { Object.assign(c, spawn()); return; }
+            const pos = at(c.line, c.t);
+            const r = 5 + 4 * Math.sin(el / 80);
+            ctx.beginPath(); ctx.arc(pos.x, pos.y, Math.max(1, r), 0, 7);
+            ctx.fillStyle = `rgba(214,40,40,${Math.max(0, 1 - el / 850)})`;
+            ctx.fill();
+            return;
+          }
+          c.t += c.speed * c.dir;
+          if (c.t > 1 || c.t < 0) {
+            if (Math.random() < 0.07) { c.crashAt = now; return; }
+            Object.assign(c, spawn()); return;
+          }
+          if (Math.random() < 0.0011) { c.crashAt = now; return; }
+          const pos = at(c.line, c.t);
+          ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(c.dir < 0 ? pos.ang + Math.PI : pos.ang);
+          ctx.fillStyle = COL.acc; ctx.fillRect(-3.5, -1.8, 7, 3.6);
+          ctx.restore();
+        });
+        heroRaf = requestAnimationFrame(tick);
+      }
+      heroRaf = requestAnimationFrame(tick);
     }
     drawHero();
     let rtHero; addEventListener('resize', () => { clearTimeout(rtHero); rtHero = setTimeout(drawHero, 200); });
