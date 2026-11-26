@@ -151,7 +151,7 @@
     const ejemplo = sitios.slice().sort((a, b) => (b.tids || []).length - (a.tids || []).length || b.graves_antes - a.graves_antes)[0];
     const tidsEj = new Set((ejemplo.tids || []).map(String));
 
-    const M = { l: 220, r: 26, t: 40, b: 62 };
+    const M = { l: 270, r: 26, t: 40, b: 62 };
     const xsV = validos.map(s => s.delta_p85_vs_control), ysV = validos.map(s => s.cambio_vs_control_pct);
     const X_TOPE = 12, Y_TOPE = 200;
     const sx = d3.scaleLinear()
