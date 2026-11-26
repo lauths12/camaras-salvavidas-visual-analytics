@@ -225,7 +225,7 @@
 
     const coverDown = document.getElementById('mecCoverDown');
     if (coverDown) coverDown.addEventListener('click', () => {
-      document.getElementById('mecanismo').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+      document.getElementById('h-ctx').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
     });
 
     // ----- Nota de fuentes y limitaciones -----
