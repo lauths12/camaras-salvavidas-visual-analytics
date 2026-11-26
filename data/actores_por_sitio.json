@@ -1,0 +1,677 @@
+{
+ "categorias": [
+  "PEATON",
+  "MOTOCICLISTA",
+  "CICLISTA",
+  "PASAJERO",
+  "CONDUCTOR"
+ ],
+ "radio_m": 250,
+ "antes": [
+  "2019-01-01",
+  "2019-10-31"
+ ],
+ "despues": [
+  "2021-01-01",
+  "2022-12-31"
+ ],
+ "control": {
+  "antes": {
+   "PEATON": 3253,
+   "MOTOCICLISTA": 4940,
+   "CICLISTA": 1736,
+   "PASAJERO": 4349,
+   "CONDUCTOR": 1056
+  },
+  "despues": {
+   "PEATON": 5635,
+   "MOTOCICLISTA": 13716,
+   "CICLISTA": 4232,
+   "PASAJERO": 9369,
+   "CONDUCTOR": 5135
+  }
+ },
+ "sitios": {
+  "DEI-001": {
+   "antes": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 10,
+    "CICLISTA": 4,
+    "PASAJERO": 10,
+    "CONDUCTOR": 3
+   },
+   "despues": {
+    "PEATON": 11,
+    "MOTOCICLISTA": 30,
+    "CICLISTA": 8,
+    "PASAJERO": 26,
+    "CONDUCTOR": 13
+   }
+  },
+  "DEI-002": {
+   "antes": {
+    "PEATON": 12,
+    "MOTOCICLISTA": 29,
+    "CICLISTA": 7,
+    "PASAJERO": 12,
+    "CONDUCTOR": 6
+   },
+   "despues": {
+    "PEATON": 4,
+    "MOTOCICLISTA": 45,
+    "CICLISTA": 30,
+    "PASAJERO": 32,
+    "CONDUCTOR": 16
+   }
+  },
+  "DEI-003": {
+   "antes": {
+    "PEATON": 10,
+    "MOTOCICLISTA": 28,
+    "CICLISTA": 9,
+    "PASAJERO": 18,
+    "CONDUCTOR": 4
+   },
+   "despues": {
+    "PEATON": 11,
+    "MOTOCICLISTA": 49,
+    "CICLISTA": 23,
+    "PASAJERO": 40,
+    "CONDUCTOR": 13
+   }
+  },
+  "DEI-004": {
+   "antes": {
+    "PEATON": 1,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 2,
+    "PASAJERO": 2,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 9,
+    "CICLISTA": 6,
+    "PASAJERO": 3,
+    "CONDUCTOR": 1
+   }
+  },
+  "DEI-005": {
+   "antes": {
+    "PEATON": 2,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 1,
+    "PASAJERO": 3,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 20,
+    "CICLISTA": 2,
+    "PASAJERO": 10,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-006": {
+   "antes": {
+    "PEATON": 10,
+    "MOTOCICLISTA": 9,
+    "CICLISTA": 1,
+    "PASAJERO": 2,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 8,
+    "MOTOCICLISTA": 25,
+    "CICLISTA": 4,
+    "PASAJERO": 21,
+    "CONDUCTOR": 6
+   }
+  },
+  "DEI-007": {
+   "antes": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 7,
+    "CICLISTA": 4,
+    "PASAJERO": 11,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 11,
+    "MOTOCICLISTA": 33,
+    "CICLISTA": 12,
+    "PASAJERO": 16,
+    "CONDUCTOR": 14
+   }
+  },
+  "DEI-008": {
+   "antes": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 10,
+    "CICLISTA": 8,
+    "PASAJERO": 10,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 29,
+    "CICLISTA": 12,
+    "PASAJERO": 14,
+    "CONDUCTOR": 9
+   }
+  },
+  "DEI-009": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 2,
+    "PASAJERO": 3,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 15,
+    "CICLISTA": 8,
+    "PASAJERO": 8,
+    "CONDUCTOR": 10
+   }
+  },
+  "DEI-010": {
+   "antes": {
+    "PEATON": 1,
+    "MOTOCICLISTA": 17,
+    "CICLISTA": 3,
+    "PASAJERO": 13,
+    "CONDUCTOR": 5
+   },
+   "despues": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 19,
+    "CICLISTA": 4,
+    "PASAJERO": 15,
+    "CONDUCTOR": 11
+   }
+  },
+  "DEI-011": {
+   "antes": {
+    "PEATON": 1,
+    "MOTOCICLISTA": 10,
+    "CICLISTA": 3,
+    "PASAJERO": 6,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 2,
+    "MOTOCICLISTA": 17,
+    "CICLISTA": 4,
+    "PASAJERO": 13,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-012": {
+   "antes": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 0,
+    "PASAJERO": 0,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 15,
+    "CICLISTA": 1,
+    "PASAJERO": 13,
+    "CONDUCTOR": 6
+   }
+  },
+  "DEI-013": {
+   "antes": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 6,
+    "CICLISTA": 5,
+    "PASAJERO": 7,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 8,
+    "MOTOCICLISTA": 24,
+    "CICLISTA": 12,
+    "PASAJERO": 12,
+    "CONDUCTOR": 4
+   }
+  },
+  "DEI-014": {
+   "antes": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 9,
+    "CICLISTA": 4,
+    "PASAJERO": 0,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 25,
+    "CICLISTA": 10,
+    "PASAJERO": 14,
+    "CONDUCTOR": 8
+   }
+  },
+  "DEI-015": {
+   "antes": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 5,
+    "CICLISTA": 6,
+    "PASAJERO": 0,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 14,
+    "CICLISTA": 4,
+    "PASAJERO": 5,
+    "CONDUCTOR": 2
+   }
+  },
+  "DEI-016": {
+   "antes": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 2,
+    "PASAJERO": 10,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 17,
+    "CICLISTA": 0,
+    "PASAJERO": 18,
+    "CONDUCTOR": 9
+   }
+  },
+  "DEI-017": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 0,
+    "PASAJERO": 14,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 7,
+    "CICLISTA": 2,
+    "PASAJERO": 4,
+    "CONDUCTOR": 4
+   }
+  },
+  "DEI-018": {
+   "antes": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 8,
+    "CICLISTA": 1,
+    "PASAJERO": 1,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 9,
+    "MOTOCICLISTA": 28,
+    "CICLISTA": 4,
+    "PASAJERO": 8,
+    "CONDUCTOR": 7
+   }
+  },
+  "DEI-019": {
+   "antes": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 8,
+    "CICLISTA": 1,
+    "PASAJERO": 13,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 12,
+    "MOTOCICLISTA": 36,
+    "CICLISTA": 1,
+    "PASAJERO": 38,
+    "CONDUCTOR": 12
+   }
+  },
+  "DEI-020": {
+   "antes": {
+    "PEATON": 2,
+    "MOTOCICLISTA": 5,
+    "CICLISTA": 4,
+    "PASAJERO": 6,
+    "CONDUCTOR": 4
+   },
+   "despues": {
+    "PEATON": 8,
+    "MOTOCICLISTA": 22,
+    "CICLISTA": 6,
+    "PASAJERO": 5,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-021": {
+   "antes": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 8,
+    "CICLISTA": 2,
+    "PASAJERO": 10,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 13,
+    "MOTOCICLISTA": 22,
+    "CICLISTA": 5,
+    "PASAJERO": 27,
+    "CONDUCTOR": 12
+   }
+  },
+  "DEI-022": {
+   "antes": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 11,
+    "CICLISTA": 2,
+    "PASAJERO": 19,
+    "CONDUCTOR": 5
+   },
+   "despues": {
+    "PEATON": 10,
+    "MOTOCICLISTA": 14,
+    "CICLISTA": 5,
+    "PASAJERO": 11,
+    "CONDUCTOR": 12
+   }
+  },
+  "DEI-023": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 1,
+    "CICLISTA": 0,
+    "PASAJERO": 0,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 10,
+    "CICLISTA": 2,
+    "PASAJERO": 8,
+    "CONDUCTOR": 4
+   }
+  },
+  "DEI-024": {
+   "antes": {
+    "PEATON": 8,
+    "MOTOCICLISTA": 11,
+    "CICLISTA": 6,
+    "PASAJERO": 24,
+    "CONDUCTOR": 4
+   },
+   "despues": {
+    "PEATON": 15,
+    "MOTOCICLISTA": 71,
+    "CICLISTA": 24,
+    "PASAJERO": 52,
+    "CONDUCTOR": 23
+   }
+  },
+  "DEI-025": {
+   "antes": {
+    "PEATON": 9,
+    "MOTOCICLISTA": 7,
+    "CICLISTA": 2,
+    "PASAJERO": 10,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 9,
+    "CICLISTA": 1,
+    "PASAJERO": 4,
+    "CONDUCTOR": 7
+   }
+  },
+  "DEI-026": {
+   "antes": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 7,
+    "CICLISTA": 2,
+    "PASAJERO": 12,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 9,
+    "MOTOCICLISTA": 30,
+    "CICLISTA": 11,
+    "PASAJERO": 14,
+    "CONDUCTOR": 6
+   }
+  },
+  "DEI-027": {
+   "antes": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 5,
+    "CICLISTA": 1,
+    "PASAJERO": 7,
+    "CONDUCTOR": 3
+   },
+   "despues": {
+    "PEATON": 22,
+    "MOTOCICLISTA": 35,
+    "CICLISTA": 6,
+    "PASAJERO": 17,
+    "CONDUCTOR": 9
+   }
+  },
+  "DEI-028": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 0,
+    "CICLISTA": 1,
+    "PASAJERO": 3,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 4,
+    "CICLISTA": 1,
+    "PASAJERO": 2,
+    "CONDUCTOR": 3
+   }
+  },
+  "DEI-029": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 2,
+    "CICLISTA": 0,
+    "PASAJERO": 2,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 7,
+    "CICLISTA": 0,
+    "PASAJERO": 10,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-030": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 5,
+    "CICLISTA": 0,
+    "PASAJERO": 4,
+    "CONDUCTOR": 1
+   },
+   "despues": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 6,
+    "CICLISTA": 2,
+    "PASAJERO": 2,
+    "CONDUCTOR": 2
+   }
+  },
+  "DEI-031": {
+   "antes": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 13,
+    "CICLISTA": 0,
+    "PASAJERO": 4,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 10,
+    "MOTOCICLISTA": 24,
+    "CICLISTA": 15,
+    "PASAJERO": 17,
+    "CONDUCTOR": 18
+   }
+  },
+  "DEI-032": {
+   "antes": {
+    "PEATON": 6,
+    "MOTOCICLISTA": 10,
+    "CICLISTA": 4,
+    "PASAJERO": 5,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 10,
+    "MOTOCICLISTA": 24,
+    "CICLISTA": 13,
+    "PASAJERO": 25,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-033": {
+   "antes": {
+    "PEATON": 5,
+    "MOTOCICLISTA": 11,
+    "CICLISTA": 3,
+    "PASAJERO": 10,
+    "CONDUCTOR": 3
+   },
+   "despues": {
+    "PEATON": 10,
+    "MOTOCICLISTA": 39,
+    "CICLISTA": 15,
+    "PASAJERO": 9,
+    "CONDUCTOR": 7
+   }
+  },
+  "DEI-034": {
+   "antes": {
+    "PEATON": 2,
+    "MOTOCICLISTA": 3,
+    "CICLISTA": 2,
+    "PASAJERO": 9,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 9,
+    "MOTOCICLISTA": 8,
+    "CICLISTA": 0,
+    "PASAJERO": 11,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-035": {
+   "antes": {
+    "PEATON": 1,
+    "MOTOCICLISTA": 1,
+    "CICLISTA": 1,
+    "PASAJERO": 4,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 18,
+    "CICLISTA": 3,
+    "PASAJERO": 10,
+    "CONDUCTOR": 5
+   }
+  },
+  "DEI-036": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 3,
+    "CICLISTA": 3,
+    "PASAJERO": 1,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 2,
+    "MOTOCICLISTA": 7,
+    "CICLISTA": 1,
+    "PASAJERO": 7,
+    "CONDUCTOR": 4
+   }
+  },
+  "DEI-037": {
+   "antes": {
+    "PEATON": 8,
+    "MOTOCICLISTA": 19,
+    "CICLISTA": 9,
+    "PASAJERO": 23,
+    "CONDUCTOR": 3
+   },
+   "despues": {
+    "PEATON": 13,
+    "MOTOCICLISTA": 35,
+    "CICLISTA": 16,
+    "PASAJERO": 16,
+    "CONDUCTOR": 14
+   }
+  },
+  "DEI-038": {
+   "antes": {
+    "PEATON": 4,
+    "MOTOCICLISTA": 6,
+    "CICLISTA": 3,
+    "PASAJERO": 0,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 16,
+    "MOTOCICLISTA": 32,
+    "CICLISTA": 18,
+    "PASAJERO": 57,
+    "CONDUCTOR": 7
+   }
+  },
+  "DEI-039": {
+   "antes": {
+    "PEATON": 7,
+    "MOTOCICLISTA": 9,
+    "CICLISTA": 4,
+    "PASAJERO": 5,
+    "CONDUCTOR": 2
+   },
+   "despues": {
+    "PEATON": 9,
+    "MOTOCICLISTA": 40,
+    "CICLISTA": 15,
+    "PASAJERO": 15,
+    "CONDUCTOR": 10
+   }
+  },
+  "DEI-040": {
+   "antes": {
+    "PEATON": 0,
+    "MOTOCICLISTA": 2,
+    "CICLISTA": 1,
+    "PASAJERO": 0,
+    "CONDUCTOR": 0
+   },
+   "despues": {
+    "PEATON": 3,
+    "MOTOCICLISTA": 13,
+    "CICLISTA": 17,
+    "PASAJERO": 4,
+    "CONDUCTOR": 2
+   }
+  }
+ },
+ "generado": "2026-11-19"
+}

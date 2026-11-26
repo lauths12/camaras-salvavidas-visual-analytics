@@ -1,0 +1,59 @@
+{
+ "categorias": [
+  "PEATON",
+  "MOTOCICLISTA",
+  "CICLISTA",
+  "PASAJERO",
+  "CONDUCTOR"
+ ],
+ "victimas": [
+  "HERIDO",
+  "MUERTO"
+ ],
+ "radio_m": 250,
+ "antes": [
+  "2019-01-01",
+  "2019-10-31"
+ ],
+ "despues": [
+  "2021-01-01",
+  "2022-12-31"
+ ],
+ "nota_antes": "El antes empieza en 2019 y no en 2018 porque el anuario 2018 no separa motociclistas ni ciclistas: todos aparecen como CONDUCTOR.",
+ "grupos": {
+  "CERCA": {
+   "antes": {
+    "PEATON": 168,
+    "MOTOCICLISTA": 319,
+    "CICLISTA": 113,
+    "PASAJERO": 293,
+    "CONDUCTOR": 66
+   },
+   "despues": {
+    "PEATON": 290,
+    "MOTOCICLISTA": 927,
+    "CICLISTA": 323,
+    "PASAJERO": 633,
+    "CONDUCTOR": 320
+   }
+  },
+  "CONTROL": {
+   "antes": {
+    "PEATON": 3253,
+    "MOTOCICLISTA": 4940,
+    "CICLISTA": 1736,
+    "PASAJERO": 4349,
+    "CONDUCTOR": 1056
+   },
+   "despues": {
+    "PEATON": 5635,
+    "MOTOCICLISTA": 13716,
+    "CICLISTA": 4232,
+    "PASAJERO": 9369,
+    "CONDUCTOR": 5135
+   }
+  }
+ },
+ "n_sin_distancia": 299,
+ "generado": "2026-11-12"
+}
