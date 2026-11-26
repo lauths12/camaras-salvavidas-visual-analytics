@@ -426,7 +426,14 @@
 
     // Zoom de la escena 2 sobre el sitio de ejemplo
     const K_EJ = 9;
-    const tEj = d3.zoomIdentity.translate(W / 2, H / 2).scale(K_EJ).translate(-ejemplo._mx, -ejemplo._my);
+    // Centra verticalmente en los sitios vecinos visibles a este zoom (no solo en el punto del ejemplo),
+    // más el espacio de la etiqueta de arriba; si no hay vecinos cerca, cae de vuelta en el punto del ejemplo.
+    const viewR = (H / K_EJ) * 1.4;
+    const cercaEj = sitios.filter(s => Math.hypot(s._mx - ejemplo._mx, s._my - ejemplo._my) <= viewR);
+    const yTopEj = Math.min(...cercaEj.map(s => s._my - s._r250)) - 24 / K_EJ;
+    const yBotEj = Math.max(...cercaEj.map(s => s._my + s._r250)) + 10 / K_EJ;
+    const centerYEj = (yTopEj + yBotEj) / 2;
+    const tEj = d3.zoomIdentity.translate(W / 2, H / 2).scale(K_EJ).translate(-ejemplo._mx, -centerYEj);
     function zoomMapa(t, D) {
       gMap.transition('zoom').duration(D).attr('transform', t.toString());
       medCentros.transition('zoom').duration(D).attr('r', 2.4 / t.k);
