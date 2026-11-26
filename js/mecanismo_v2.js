@@ -258,6 +258,10 @@
     }
     drawHero();
     let rtHero; addEventListener('resize', () => { clearTimeout(rtHero); rtHero = setTimeout(drawHero, 200); });
+    const coverDown = document.getElementById('mecCoverDown');
+    if (coverDown) coverDown.addEventListener('click', () => {
+      document.querySelector('.mec-cover-stats').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+    });
 
     // ----- Nota de fuentes y limitaciones -----
     const errGeo = geo && geo.error_mediano_m ? `${nf(geo.error_mediano_m)} m` : 'unos 170 m';
