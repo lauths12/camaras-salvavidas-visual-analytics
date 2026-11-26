@@ -223,6 +223,131 @@
       this.textContent = v == null ? '—' : v;
     });
 
+    // ----- Portada: mapa de fondo animado, todo en tonos morados (estelas y choques) -----
+    let heroRaf = null;
+    function drawHero() {
+      const cv = document.getElementById('heroRoads');
+      if (!cv) return;
+      if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = null; }
+      const box = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = box.width * dpr; cv.height = box.height * dpr;
+      const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+      const w = box.width, h = box.height;
+      const ZOOM = 1.9, padX = w * (ZOOM - 1) / 2, padY = h * (ZOOM - 1) / 2;
+      const pj = d3.geoMercator().fitExtent([[-padX + 10, -padY + 10], [w + padX - 10, h + padY - 10]], tramos);
+
+      const off = document.createElement('canvas');
+      off.width = cv.width; off.height = cv.height;
+      const octx = off.getContext('2d'); octx.scale(dpr, dpr); octx.lineCap = 'round';
+      tramos.features.forEach(f => {
+        octx.beginPath(); d3.geoPath(pj, octx)(f);
+        octx.strokeStyle = COL.road; octx.globalAlpha = f.properties.con_camara ? .95 : .55;
+        octx.lineWidth = f.properties.con_camara ? 2.6 : 1.4;
+        octx.stroke();
+      });
+      octx.globalAlpha = 1;
+      function pin(c, x, yTip, r) {
+        const cy = yTip - r * 2.3;
+        c.fillStyle = COL.acc;
+        c.beginPath(); c.moveTo(x, yTip); c.lineTo(x - r * 0.42, cy + r * 0.78); c.lineTo(x + r * 0.42, cy + r * 0.78); c.closePath(); c.fill();
+        c.beginPath(); c.arc(x, cy, r, 0, 7); c.fill();
+        c.beginPath(); c.arc(x, cy, r * 0.38, 0, 7); c.fillStyle = '#fff'; c.fill();
+      }
+      sitios.forEach((s, i) => {
+        if (i % 4 !== 0) return;
+        const [x, y] = pj([s.lon, s.lat]);
+        if (x < -20 || x > w + 20 || y < -20 || y > h + 20) return;
+        pin(octx, x, y + 9, 8);
+      });
+
+      const lines = [];
+      tramos.features.forEach(f => {
+        const g = f.geometry;
+        const multi = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+        multi.forEach(coords => {
+          if (!coords || coords.length < 2) return;
+          const pts = coords.map(c => pj(c));
+          if (pts.every(([x, y]) => x < -40 || x > w + 40 || y < -40 || y > h + 40)) return;
+          let len = 0; const cum = [0];
+          for (let i = 1; i < pts.length; i++) { len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(len); }
+          if (len > 24) lines.push({ pts, cum, len, camara: f.properties.con_camara });
+        });
+      });
+      if (reduce || !lines.length) { ctx.clearRect(0, 0, w, h); ctx.drawImage(off, 0, 0, w, h); return; }
+
+      const trail = document.createElement('canvas');
+      trail.width = cv.width; trail.height = cv.height;
+      const tctx = trail.getContext('2d'); tctx.scale(dpr, dpr); tctx.lineCap = 'round';
+
+      function at(line, t) {
+        const target = Math.max(0, Math.min(line.len, t * line.len));
+        let i = 1; while (i < line.cum.length && line.cum[i] < target) i++;
+        i = Math.min(i, line.pts.length - 1);
+        const segLen = (line.cum[i] - line.cum[i - 1]) || 1, segT = (target - line.cum[i - 1]) / segLen;
+        const [x0, y0] = line.pts[i - 1], [x1, y1] = line.pts[i];
+        return { x: x0 + (x1 - x0) * segT, y: y0 + (y1 - y0) * segT, ang: Math.atan2(y1 - y0, x1 - x0) };
+      }
+      const camLines = lines.filter(l => l.camara);
+      function spawn() {
+        const useCam = camLines.length && Math.random() < 0.6;
+        return {
+          line: (useCam ? camLines : lines)[Math.floor(Math.random() * (useCam ? camLines.length : lines.length))],
+          t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1,
+          speed: 0.00035 + Math.random() * 0.00045,
+          crashAt: 0, prev: null
+        };
+      }
+      const N = Math.min(55, Math.max(28, Math.round(lines.length / 10)));
+      const cars = d3.range(N).map(spawn);
+      const CRASH = '147,51,234'; // morado vivo, no rojo, para mantener todo en la misma gama
+
+      function tick(now) {
+        tctx.globalCompositeOperation = 'destination-out';
+        tctx.fillStyle = 'rgba(255,255,255,0.045)';
+        tctx.fillRect(0, 0, w, h);
+        tctx.globalCompositeOperation = 'source-over';
+
+        cars.forEach(c => {
+          if (c.crashAt) {
+            const el = now - c.crashAt;
+            if (el > 1000) { Object.assign(c, spawn()); return; }
+            const pos = at(c.line, c.t);
+            const r = 7 + 5 * Math.sin(el / 230);
+            tctx.save();
+            tctx.shadowColor = `rgba(${CRASH},.95)`; tctx.shadowBlur = 22;
+            tctx.beginPath(); tctx.arc(pos.x, pos.y, Math.max(1, r), 0, 7);
+            tctx.fillStyle = `rgba(${CRASH},${Math.max(0, 1 - el / 1000)})`;
+            tctx.fill(); tctx.restore();
+            return;
+          }
+          c.t += c.speed * c.dir;
+          if (c.t > 1 || c.t < 0) {
+            if (Math.random() < 0.025) { c.crashAt = now; return; }
+            Object.assign(c, spawn()); return;
+          }
+          if (Math.random() < 0.0004) { c.crashAt = now; return; }
+          const pos = at(c.line, c.t);
+          const col = c.line.camara ? COL.acc3 : COL.acc;
+          if (c.prev) {
+            tctx.save();
+            tctx.shadowColor = col; tctx.shadowBlur = 16;
+            tctx.strokeStyle = col; tctx.lineWidth = 4.5; tctx.globalAlpha = 1;
+            tctx.beginPath(); tctx.moveTo(c.prev.x, c.prev.y); tctx.lineTo(pos.x, pos.y); tctx.stroke();
+            tctx.restore();
+          }
+          c.prev = pos;
+        });
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(off, 0, 0, w, h);
+        ctx.drawImage(trail, 0, 0, w, h);
+        heroRaf = requestAnimationFrame(tick);
+      }
+      heroRaf = requestAnimationFrame(tick);
+    }
+    drawHero();
+    let rtHero; addEventListener('resize', () => { clearTimeout(rtHero); rtHero = setTimeout(drawHero, 200); });
+
     const coverDown = document.getElementById('mecCoverDown');
     if (coverDown) coverDown.addEventListener('click', () => {
       document.getElementById('h-ctx').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
