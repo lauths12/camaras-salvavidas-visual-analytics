@@ -113,7 +113,7 @@
         ? `<b style="color:${BIV.ss}">↗ suben los dos</b><b style="color:${BIV.sb}">↖ suben siniestros, baja velocidad</b>` +
           `<b style="color:${BIV.bs}">↘ bajan siniestros, sube velocidad</b><b style="color:${BIV.bb}">↙ bajan los dos</b>`
         : '';
-      return `<span class="v2-biv"><svg viewBox="0 0 ${size + 2 * pad} ${size + 2 * pad}" width="${size + 2 * pad}" height="${size + 2 * pad}" aria-hidden="true">${cells}</svg>` +
+      return `<span class="v2-biv${conEtiquetas ? ' v2-biv-stack' : ''}"><svg viewBox="0 0 ${size + 2 * pad} ${size + 2 * pad}" width="${size + 2 * pad}" height="${size + 2 * pad}" aria-hidden="true">${cells}</svg>` +
         `<span class="v2-biv-ax">${etiquetas}` +
         `<span>Horizontal: velocidad. Vertical: siniestros (frente al control). Gris: cambio pequeño.</span></span></span>`;
     }

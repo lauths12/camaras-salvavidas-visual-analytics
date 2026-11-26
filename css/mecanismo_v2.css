@@ -48,6 +48,9 @@
 .v2-biv-ax{display:grid;gap:2px;font-size:11px;line-height:1.25}
 .v2-biv-ax b{font-weight:700}
 .v2-biv-ax span{color:var(--muted)}
+.v2-biv-stack{display:grid;gap:7px;flex-basis:100%}
+.v2-biv-stack .v2-biv-ax{gap:4px}
+.v2-biv-stack .v2-biv-ax span{padding-top:5px;border-top:1px solid var(--line)}
 
 /* Detalle debajo del explorador */
 .v2-fichabox{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 24px;background:var(--glass-strong);border:1px solid var(--glass-line);padding:16px 44px 18px 18px;font-size:14px}
