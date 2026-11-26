@@ -36,14 +36,16 @@
 <section class="mec-scrolly" id="mecanismo" aria-label="Recorrido por escenas">
   <div class="mec-graphic">
     <div class="seg" id="mecToggle" role="group" aria-label="Capa del mapa"></div>
-    <svg id="mecGraph" class="chart" role="img" aria-label="Gráfico de la escena actual"></svg>
-    <div id="mecLegend" class="mec-legend" aria-live="polite"></div>
+    <div class="mec-chartbox">
+      <svg id="mecGraph" class="chart" role="img" aria-label="Gráfico de la escena actual"></svg>
+      <div id="mecLegend" class="mec-legend" aria-live="polite"></div>
+    </div>
   </div>
   <div class="mec-steps">
     <div class="mec-step" data-mscene="0">
       <div class="mec-card">
         <p>Bogotá no mide la velocidad en un punto, sino en <b data-mec="n_tramos">—</b> <b>tramos de vía</b> con sensores Bitcarrier, repartidos por toda la ciudad. Cada línea del mapa es uno.</p>
-        <p>Un tramo cuenta como <b class="mec-t-acc">«con cámara»</b> si tiene una cámara a 50 m o menos: son <b data-mec="n_tramos_cam_red">—</b>. Los demás tramos son el punto de comparación.</p>
+        <p>Un tramo cuenta como <b class="mec-t-acc">"con cámara"</b> si tiene una cámara a 50 m o menos: son <b data-mec="n_tramos_cam_red">—</b>. Los demás tramos son el punto de comparación.</p>
       </div>
     </div>
     <div class="mec-step" data-mscene="1">

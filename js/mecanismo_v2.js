@@ -1,4 +1,4 @@
-/* Página «Del resultado al mecanismo (v2)» (mecanismo_v2.html).
+/* Página "Del resultado al mecanismo (v2)" (mecanismo_v2.html).
    Basada en js/mecanismo.js (que no se modifica). Cambios:
    - Escenas 1-2 nuevas: cómo se mide (tramos Bitcarrier, sitio = radio de 250 m, tramos a 50 m).
    - Se quitan las escenas de cajas por franja y pendientes por actor; lo que mostraban se
@@ -373,10 +373,10 @@
       `Siniestros graves = con heridos o con muertos, a ${meta.radio_m} m o menos del sitio; el control es el resto de la ciudad. ` +
       `Antes: ${fmtMes(meta.antes[0])}–${fmtMes(meta.antes[1])}; después: ${fmtMes(meta.despues[0])}–${fmtMes(meta.despues[1])}. Las tasas son por mes porque los dos periodos no duran lo mismo. ` +
       `<br><b>Limitaciones:</b> los siniestros de 2018 a 2021 están geocodificados desde la dirección (error mediano ${errGeo}); por eso se usa un radio de ${meta.radio_m} m. ` +
-      `Desde octubre de 2021 casi no hay datos de velocidad en los tramos con cámara, así que el «después» de velocidad es más corto que el de siniestros. ` +
+      `Desde octubre de 2021 casi no hay datos de velocidad en los tramos con cámara, así que el "después" de velocidad es más corto que el de siniestros. ` +
       `2020 se excluye por la cuarentena. ` +
       `Varios sitios comparten el mismo tramo de sensor, así que los ${nf(meta.n_correlacion)} sitios de la correlación tienen solo ${V.n_tramos_distintos} combinaciones de velocidad distintas: es una señal descriptiva, no una prueba causal. ` +
-      (actores ? `En el explorador, las víctimas «antes» son de ${fmtMes(actores.antes[0])}–${fmtMes(actores.antes[1])}, porque el anuario 2018 no separa motociclistas ni ciclistas; los sitios con menos de ${MIN_VICTIMAS} víctimas en algún periodo se marcan como «pocos datos».` : '')
+      (actores ? `En el explorador, las víctimas "antes" son de ${fmtMes(actores.antes[0])}–${fmtMes(actores.antes[1])}, porque el anuario 2018 no separa motociclistas ni ciclistas; los sitios con menos de ${MIN_VICTIMAS} víctimas en algún periodo se marcan como "pocos datos".` : '')
     );
 
     // ======================================================================
@@ -473,12 +473,12 @@
         leyenda(`<span class="mec-sw"><b>Siniestros graves frente al control:</b></span>` +
           barra(t => bivColor(t * S_FULL, null), `${fmt(-S_FULL)} % o menos`, `${fmt(S_FULL)} % o más`) +
           (hayVacios('sin') ? swVacio('pocos datos') : '') +
-          `<span class="mec-nota">Tamaño del círculo: siniestros graves por año antes de las cámaras. Los mismos colores son el eje vertical del mapa «Coinciden».</span>`);
+          `<span class="mec-nota">Tamaño del círculo: siniestros graves por año antes de las cámaras. Los mismos colores son el eje vertical del mapa "Coinciden".</span>`);
       } else if (capa === 'vel') {
         leyenda(`<span class="mec-sw"><b>Velocidad p85 nocturna frente al control:</b></span>` +
           barra(t => bivColor(null, t * V_FULL), `${fmt(-V_FULL)} km/h o menos`, `${fmt(V_FULL)} km/h o más`) +
           (hayVacios('vel') ? swVacio('sin sensor cercano') : '') +
-          `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche). Los mismos colores son el eje horizontal del mapa «Coinciden».</span>`);
+          `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche). Los mismos colores son el eje horizontal del mapa "Coinciden".</span>`);
       } else {
         const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
         leyenda(leyenda2D() +
@@ -535,7 +535,7 @@
       leyenda(leyenda2D(5) +
         `<span class="mec-sw"><b>r = ${nf(meta.r_pearson, 2)}</b>&nbsp;(Spearman ${nf(meta.r_spearman, 2)}, n = ${nf(meta.n_correlacion)})</span>` +
         sw(COL.ink2, 'tendencia (mínimos cuadrados)', 'linea') +
-        `<span class="mec-nota">El fondo y los puntos usan los mismos colores del mapa «Coinciden». Los sitios que comparten sensor quedan en la misma columna. Las flechas marcan valores que se salen del eje.</span>`);
+        `<span class="mec-nota">El fondo y los puntos usan los mismos colores del mapa "Coinciden". Los sitios que comparten sensor quedan en la misma columna. Las flechas marcan valores que se salen del eje.</span>`);
     }
 
     function ocultarSitios(D) {
