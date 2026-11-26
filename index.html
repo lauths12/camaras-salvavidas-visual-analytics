@@ -42,41 +42,35 @@
   <div class="mec-steps">
     <div class="mec-step" data-mscene="0">
       <div class="mec-card">
-        <p class="mec-n">1 de 6 · ¿Cómo se mide la velocidad?</p>
         <p>Bogotá no mide la velocidad en un punto, sino en <b data-mec="n_tramos">—</b> <b>tramos de vía</b> con sensores Bitcarrier, repartidos por toda la ciudad. Cada línea del mapa es uno.</p>
         <p>Un tramo cuenta como <b class="mec-t-acc">«con cámara»</b> si tiene una cámara a 50 m o menos: son <b data-mec="n_tramos_cam_red">—</b>. Los demás tramos son el punto de comparación.</p>
       </div>
     </div>
     <div class="mec-step" data-mscene="1">
       <div class="mec-card">
-        <p class="mec-n">2 de 6 · ¿Y los siniestros?</p>
         <p>Las <b data-mec="n_camaras">—</b> cámaras están en <b data-mec="n_sitios">—</b> cruces; cada cruce es un <b>sitio</b>. Un siniestro pertenece a un sitio si ocurrió a <b data-mec="radio_m">—</b> m o menos de él. Se usa ese radio, y no uno menor, porque la ubicación de los siniestros de 2018 a 2021 se estimó desde la dirección, con un error típico de unos <span data-mec="err_geo">—</span>.</p>
         <p>La velocidad de cada sitio es el promedio de sus tramos a 50 m o menos. En el ejemplo, <b data-mec="ej_corredor">—</b> usa <b data-mec="ej_n_tramos">—</b>. Todo lo que queda fuera de los círculos es el <b>resto de la ciudad</b>, el control.</p>
       </div>
     </div>
     <div class="mec-step" data-mscene="2">
       <div class="mec-card">
-        <p class="mec-n">3 de 6 · ¿Dónde bajaron los siniestros graves?</p>
         <p>Cada círculo es uno de los <b data-mec="n_sitios">—</b> sitios con cámara. El color compara el cambio de siniestros graves (con heridos o muertos) a <span data-mec="radio_m">—</span> m o menos del sitio con el cambio en el resto de la ciudad. <b class="v2-t-sbaja">Azul verdoso</b>: bajaron más que en el control. <b class="v2-t-ssube">Naranja</b>: subieron más.</p>
         <p>Bajaron más que en la ciudad en <b data-mec="n_sin_bajan">—</b> sitios y subieron más en <b data-mec="n_sin_suben">—</b>.</p>
       </div>
     </div>
     <div class="mec-step" data-mscene="3">
       <div class="mec-card">
-        <p class="mec-n">4 de 6 · ¿Bajó también la velocidad?</p>
         <p>Los mismos sitios, ahora con el percentil 85 de la velocidad nocturna. De noche el tráfico fluye y se ve el exceso de velocidad; de día la velocidad refleja sobre todo la congestión. Los círculos vacíos no tienen sensor cerca.</p>
         <p>Frente al resto de la ciudad, la velocidad nocturna subió <span data-mec="umbral_vel">—</span> km/h o más en <b data-mec="n_vel_sube">—</b> de los <b data-mec="n_con_velocidad">—</b> sitios con sensor, y bajó esa cantidad o más en <b data-mec="n_vel_baja">—</b>.</p>
       </div>
     </div>
     <div class="mec-step" data-mscene="4">
       <div class="mec-card">
-        <p class="mec-n">5 de 6 · ¿Coinciden los dos mapas?</p>
         <p>En <b data-mec="n_bajan_ambos">—</b> de los <b data-mec="n_con_ambos">—</b> sitios con datos bajaron la velocidad y los siniestros a la vez. En <b data-mec="n_suben_ambos">—</b> subieron los dos.</p>
       </div>
     </div>
     <div class="mec-step" data-mscene="5">
       <div class="mec-card">
-        <p class="mec-n">6 de 6 · ¿Se relacionan velocidad y siniestros?</p>
         <p>Cada punto es un sitio. Si las cámaras redujeran los siniestros porque bajan la velocidad, los puntos caerían en la esquina inferior izquierda. Ahí quedan <b data-mec="n_cuadrante_bi">—</b>, y de ellos solo en <b data-mec="n_bi_vel_clara">—</b> la velocidad bajó <span data-mec="umbral_vel">—</span> km/h o más frente al control (fuera de la franja gris).</p>
         <p>Correlación: r = <b data-mec="r_pearson">—</b> con <span data-mec="n_correlacion">—</span> sitios, que usan solo <span data-mec="n_tramos_distintos">—</span> combinaciones de sensores distintas, porque varios sitios comparten tramo. Es una relación <span data-mec="r_fuerza">—</span>: una señal, no una prueba de causalidad.</p>
         <p>Quedan dos preguntas: ¿pasa lo mismo a cualquier hora? y ¿cambió a quién afectan los siniestros? Explóralo en el mapa de abajo.</p>

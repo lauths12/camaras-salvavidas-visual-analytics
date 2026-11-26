@@ -36,7 +36,7 @@
 .mec-end{padding-top:40px;padding-bottom:80px}
 
 /* Scrollytelling: gráfica sticky a la izquierda, pasos a la derecha */
-.mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:44px;align-items:start}
+.mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,2fr);gap:44px;align-items:start}
 .mec-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;padding:64px 0 16px}
 .mec-graphic .chart{background:none;box-shadow:none;border:0;padding:0}
 .mec-graphic svg{width:100%;height:auto;max-height:calc(100vh - 170px)}
@@ -45,11 +45,10 @@
 .mec-steps{padding:28vh 0 45vh}
 .mec-step{min-height:80vh;display:flex;align-items:center}
 .mec-step[hidden]{display:none!important}
-.mec-card{display:grid;gap:12px;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--glass-line);box-shadow:var(--shadow);padding:22px 24px;opacity:.45;transform:translateY(8px);transition:opacity .35s,transform .35s}
+.mec-card{display:grid;gap:10px;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--glass-line);box-shadow:var(--shadow);padding:16px 18px;opacity:.45;transform:translateY(8px);transition:opacity .35s,transform .35s}
 .mec-step.is-active .mec-card{opacity:1;transform:none}
-.mec-card p{font-size:18px;line-height:1.55;color:var(--ink2)}
+.mec-card p{font-size:16px;line-height:1.55;color:var(--ink2)}
 .mec-card b{color:var(--ink)}
-.mec-card .mec-n{font:700 12px var(--f-disp);letter-spacing:.1em;color:var(--acc);text-transform:uppercase;line-height:1.4}
 .mec-t-baja{color:var(--mec-baja-fuerte)!important}
 .mec-t-sube{color:var(--mec-sube-fuerte)!important}
 
