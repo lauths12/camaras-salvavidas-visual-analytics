@@ -54,16 +54,16 @@
 
 /* Leyenda bajo la gráfica */
 .mec-chartbox{position:relative}
-.mec-legend{position:absolute;top:10px;left:10px;z-index:3;max-width:280px;display:grid;gap:5px;font-size:12.5px;line-height:1.3;color:var(--ink2);background:var(--glass-strong);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);border:1px solid var(--glass-line);padding:10px 12px}
+.mec-legend{position:absolute;top:10px;left:10px;z-index:3;max-width:250px;display:grid;gap:4px;font-size:11.5px;line-height:1.3;color:var(--ink2);background:var(--glass-strong);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);border:1px solid var(--glass-line);padding:8px 10px}
 .mec-legend .mec-sw{display:inline-flex;align-items:center;gap:6px}
 .mec-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--mec-borde);flex:none}
 .mec-legend i.vacio{background:#fff;border-style:dashed}
 .mec-legend i.linea{width:22px;height:3px;border:0;border-radius:0}
 .mec-legend i.caja{border-radius:0;width:14px}
 .mec-legend .mec-nota{color:var(--muted);padding-top:7px;border-top:1px solid var(--line)}
-.mec-tabla{border-collapse:collapse;font-size:13px;width:auto}
-.mec-tabla th,.mec-tabla td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
-.mec-tabla th{font:700 11px var(--f-disp);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.mec-tabla{border-collapse:collapse;font-size:11px;width:auto}
+.mec-tabla th,.mec-tabla td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
+.mec-tabla th{font:700 9.5px var(--f-disp);letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
 .mec-tabla td.si{font-weight:700;color:#fff}
 .mec-tabla td.baja{background:var(--mec-baja-fuerte)}
 .mec-tabla td.sube{background:var(--mec-sube-fuerte)}

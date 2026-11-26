@@ -115,7 +115,7 @@
         : '';
       return `<span class="v2-biv"><svg viewBox="0 0 ${size + 2 * pad} ${size + 2 * pad}" width="${size + 2 * pad}" height="${size + 2 * pad}" aria-hidden="true">${cells}</svg>` +
         `<span class="v2-biv-ax">${etiquetas}` +
-        `<span>→ velocidad · ↑ siniestros (frente al control). Gris: cambio pequeño.</span></span></span>`;
+        `<span>Horizontal: velocidad. Vertical: siniestros (frente al control). Gris: cambio pequeño.</span></span></span>`;
     }
 
     // ----- Sitios -----
