@@ -500,23 +500,27 @@
 
     // ----- Escenas -----
     let escena = -1, capa = 'sin';
-    const CAPA_DE_ESCENA = { 2: 'sin', 3: 'vel', 4: 'coi' };
+    const CAPA_DE_ESCENA = { 3: 'sin', 4: 'vel', 5: 'coi' };
 
     function dibujarMedicion(i, D) {
       mostrar(['roads', 'med'], D);
       ocultarSitios(D);
-      medCirc.transition('m').duration(D).style('opacity', i === 1 ? 1 : 0);
-      medEj.transition('m').duration(D).style('opacity', i === 1 ? 1 : 0);
-      medTramosCam.transition('m').duration(D).attr('stroke', i === 1 ? COL.acc2 : COL.acc);
-      zoomMapa(i === 1 ? tEj : d3.zoomIdentity, D);
+      const conCirculos = i === 1 || i === 2;
+      medCirc.transition('m').duration(D).style('opacity', conCirculos ? 1 : 0);
+      medEj.transition('m').duration(D).style('opacity', conCirculos ? 1 : 0);
+      medTramosCam.transition('m').duration(D).attr('stroke', conCirculos ? COL.acc2 : COL.acc);
+      zoomMapa(i === 2 ? tEj : d3.zoomIdentity, D);
       if (i === 0) {
         leyenda(`<span class="mec-sw"><i class="linea" style="background:${COL.road}"></i>tramo con sensor de velocidad (${V.n_tramos})</span>` +
           sw(COL.acc, `tramo con cámara a 50 m o menos (${V.n_tramos_cam_red})`, 'linea') +
           `<span class="mec-nota">La velocidad se resume con el percentil 85 (p85): la velocidad que solo supera el 15 % más rápido de los vehículos.</span>`);
-      } else {
+      } else if (i === 1) {
         leyenda(sw(COL.acc3, `radio de ${meta.radio_m} m alrededor del sitio: sus siniestros`) +
-          sw(COL.ink, `tramos a 50 m o menos: su velocidad`, 'linea') +
           `<span class="mec-nota">Si un siniestro queda cerca de dos sitios, cuenta para el más cercano.</span>`);
+      } else {
+        leyenda(sw(COL.ink, `tramos a 50 m o menos: su velocidad`, 'linea') +
+          sw(COL.acc3, `radio de ${meta.radio_m} m alrededor del sitio: sus siniestros`) +
+          `<span class="mec-nota">Acercado sobre ${pretty(ejemplo.corredor)}, el sitio con más tramos asignados.</span>`);
       }
     }
 
@@ -553,13 +557,13 @@
       if (i === escena) return;
       escena = i;
       const D = animate ? dur(750) : 0;
-      const conToggle = i >= 2 && i <= 4;
+      const conToggle = i >= 3 && i <= 5;
       d3.select('#mecToggle').classed('mec-toggle-off', !conToggle).attr('aria-hidden', conToggle ? null : 'true')
         .selectAll('button').attr('tabindex', conToggle ? null : -1);
       tipHide();
-      if (i <= 1) {
+      if (i <= 2) {
         dibujarMedicion(i, D);
-      } else if (i <= 4) {
+      } else if (i <= 5) {
         capa = CAPA_DE_ESCENA[i];
         d3.select('#mecToggle').selectAll('button').attr('aria-pressed', d => d[0] === capa);
         dibujarMapa(D);
@@ -569,7 +573,7 @@
     }
 
     seg('#mecToggle', [['sin', 'Siniestros'], ['vel', 'Velocidad'], ['coi', 'Coinciden']], () => capa,
-      v => { capa = v; if (escena >= 2 && escena <= 4) dibujarMapa(dur(500)); });
+      v => { capa = v; if (escena >= 3 && escena <= 5) dibujarMapa(dur(500)); });
 
     dibujarEjesDispersion();
 
