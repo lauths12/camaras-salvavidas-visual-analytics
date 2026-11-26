@@ -1,4 +1,4 @@
-/* Página «Del resultado al mecanismo (v2)» (mecanismo_v2.html).
+/* Página "Del resultado al mecanismo (v2)" (mecanismo_v2.html).
    Basada en js/mecanismo.js (que no se modifica). Cambios:
    - Escenas 1-2 nuevas: cómo se mide (tramos Bitcarrier, sitio = radio de 250 m, tramos a 50 m).
    - Se quitan las escenas de cajas por franja y pendientes por actor; lo que mostraban se
@@ -101,24 +101,40 @@
       return d3.interpolateLab(BIV.centro, d3.interpolateHcl(bajo, alto)(v))(Math.pow(r, 0.85));
     }
     const gradCSS = (fn) => `linear-gradient(90deg, ${d3.range(0, 1.0001, 0.125).map(t => fn(-1 + 2 * t)).join(',')})`;
-    const barra = (fn, izq, der) => `<span class="v2-grad"><span>${izq}</span><i style="background:${gradCSS(fn)}"></i><span>${der}</span></span>`;
-    function leyenda2D(n = 7) {
+    const barra = (fn, izq, der) => `<span class="v2-grad"><i style="background:${gradCSS(fn)}"></i><span class="v2-grad-lbl"><span>${izq}</span><span>${der}</span></span></span>`;
+    function leyenda2D(n = 7, conEtiquetas = true) {
       const c = 13, pad = 4, size = n * c;
       let cells = '';
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
         const x = -1 + 2 * i / (n - 1), y = 1 - 2 * j / (n - 1);
         cells += `<rect x="${pad + i * c}" y="${pad + j * c}" width="${c}" height="${c}" fill="${bivColor(y * S_FULL, x * V_FULL)}"/>`;
       }
-      return `<span class="v2-biv"><svg viewBox="0 0 ${size + 2 * pad} ${size + 2 * pad}" width="${size + 2 * pad}" height="${size + 2 * pad}" aria-hidden="true">${cells}</svg>` +
-        `<span class="v2-biv-ax"><b style="color:${BIV.ss}">↗ suben los dos</b><b style="color:${BIV.sb}">↖ suben siniestros, baja velocidad</b>` +
-        `<b style="color:${BIV.bs}">↘ bajan siniestros, sube velocidad</b><b style="color:${BIV.bb}">↙ bajan los dos</b>` +
-        `<span>→ velocidad · ↑ siniestros (frente al control). Gris: cambio pequeño.</span></span></span>`;
+      const etiquetas = conEtiquetas
+        ? `<b style="color:${BIV.ss}">↗ suben los dos</b><b style="color:${BIV.sb}">↖ suben siniestros, baja velocidad</b>` +
+          `<b style="color:${BIV.bs}">↘ bajan siniestros, sube velocidad</b><b style="color:${BIV.bb}">↙ bajan los dos</b>`
+        : '';
+      return `<span class="v2-biv${conEtiquetas ? ' v2-biv-stack' : ''}"><svg viewBox="0 0 ${size + 2 * pad} ${size + 2 * pad}" width="${size + 2 * pad}" height="${size + 2 * pad}" aria-hidden="true">${cells}</svg>` +
+        `<span class="v2-biv-ax">${etiquetas}` +
+        `<span>Horizontal: velocidad. Vertical: siniestros (frente al control). Gris: cambio pequeño.</span></span></span>`;
     }
 
     // ----- Sitios -----
     const aniosAntes = (meta.meses_antes || 22) / 12;
     const sitios = mec.sitios.slice();
     const proj = d3.geoMercator().fitExtent([[30, 24], [W - 30, H - 24]], tramos);
+    {
+      // La geografía es angosta y alta; fitExtent (contain) deja franjas vacías a los lados.
+      // Se reescala tipo "cover" para que llene el ancho, recortando arriba/abajo en vez de dejar espacio en blanco.
+      const boxW = W - 60, boxH = H - 48;
+      const b0 = d3.geoPath(proj).bounds(tramos);
+      const drawnW = b0[1][0] - b0[0][0], drawnH = b0[1][1] - b0[0][1];
+      const zoom = Math.max(boxW / drawnW, boxH / drawnH);
+      proj.scale(proj.scale() * zoom);
+      const b1 = d3.geoPath(proj).bounds(tramos);
+      const curCx = (b1[0][0] + b1[1][0]) / 2, curCy = (b1[0][1] + b1[1][1]) / 2;
+      const [tx, ty] = proj.translate();
+      proj.translate([tx + (W / 2 - curCx), ty + (H / 2 - curCy)]);
+    }
     const path = d3.geoPath(proj);
     const rS = d3.scaleSqrt().domain([0, d3.max(sitios, s => s.graves_antes / aniosAntes) || 1]).range([4, 12]);
     sitios.forEach(s => {
@@ -135,7 +151,7 @@
     const ejemplo = sitios.slice().sort((a, b) => (b.tids || []).length - (a.tids || []).length || b.graves_antes - a.graves_antes)[0];
     const tidsEj = new Set((ejemplo.tids || []).map(String));
 
-    const M = { l: 66, r: 26, t: 40, b: 62 };
+    const M = { l: 270, r: 26, t: 40, b: 62 };
     const xsV = validos.map(s => s.delta_p85_vs_control), ysV = validos.map(s => s.cambio_vs_control_pct);
     const X_TOPE = 12, Y_TOPE = 200;
     const sx = d3.scaleLinear()
@@ -216,24 +232,150 @@
       n_correlacion: meta.n_correlacion,
       n_tramos_distintos: res.n_tramos_distintos ?? '—',
       r_fuerza: fuerza,
-      n_tramos_cam: noche.filter(e => e.con_camara).length
+      n_tramos_cam: noche.filter(e => e.con_camara).length,
+      n_cambio_pequeno: nf(res.n_cambio_pequeno ?? 0),
+      rango_cambio_peq: `entre ${fmt(uS2)} y ${fmt(uS3)} % o entre ${fmt(uV2)} y ${fmt(uV3)} km/h`
     };
     d3.selectAll('[data-mec]').each(function () {
       const v = V[this.dataset.mec];
       this.textContent = v == null ? '—' : v;
     });
 
-    // ----- Nota de fuentes y limitaciones -----
-    const errGeo = geo && geo.error_mediano_m ? `${nf(geo.error_mediano_m)} m` : 'unos 170 m';
+    // ----- Portada: mapa de fondo animado, todo en tonos morados (estelas y choques) -----
+    let heroRaf = null;
+    function drawHero() {
+      const cv = document.getElementById('heroRoads');
+      if (!cv) return;
+      if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = null; }
+      const box = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = box.width * dpr; cv.height = box.height * dpr;
+      const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+      const w = box.width, h = box.height;
+      const ZOOM = 1.9, padX = w * (ZOOM - 1) / 2, padY = h * (ZOOM - 1) / 2;
+      const pj = d3.geoMercator().fitExtent([[-padX + 10, -padY + 10], [w + padX - 10, h + padY - 10]], tramos);
+
+      const off = document.createElement('canvas');
+      off.width = cv.width; off.height = cv.height;
+      const octx = off.getContext('2d'); octx.scale(dpr, dpr); octx.lineCap = 'round';
+      tramos.features.forEach(f => {
+        octx.beginPath(); d3.geoPath(pj, octx)(f);
+        octx.strokeStyle = COL.road; octx.globalAlpha = f.properties.con_camara ? .95 : .55;
+        octx.lineWidth = f.properties.con_camara ? 2.6 : 1.4;
+        octx.stroke();
+      });
+      octx.globalAlpha = 1;
+      function pin(c, x, yTip, r) {
+        const cy = yTip - r * 2.3;
+        c.fillStyle = COL.acc;
+        c.beginPath(); c.moveTo(x, yTip); c.lineTo(x - r * 0.42, cy + r * 0.78); c.lineTo(x + r * 0.42, cy + r * 0.78); c.closePath(); c.fill();
+        c.beginPath(); c.arc(x, cy, r, 0, 7); c.fill();
+        c.beginPath(); c.arc(x, cy, r * 0.38, 0, 7); c.fillStyle = '#fff'; c.fill();
+      }
+      sitios.forEach((s, i) => {
+        if (i % 4 !== 0) return;
+        const [x, y] = pj([s.lon, s.lat]);
+        if (x < -20 || x > w + 20 || y < -20 || y > h + 20) return;
+        pin(octx, x, y + 9, 8);
+      });
+
+      const lines = [];
+      tramos.features.forEach(f => {
+        const g = f.geometry;
+        const multi = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+        multi.forEach(coords => {
+          if (!coords || coords.length < 2) return;
+          const pts = coords.map(c => pj(c));
+          if (pts.every(([x, y]) => x < -40 || x > w + 40 || y < -40 || y > h + 40)) return;
+          let len = 0; const cum = [0];
+          for (let i = 1; i < pts.length; i++) { len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(len); }
+          if (len > 24) lines.push({ pts, cum, len, camara: f.properties.con_camara });
+        });
+      });
+      if (reduce || !lines.length) { ctx.clearRect(0, 0, w, h); ctx.drawImage(off, 0, 0, w, h); return; }
+
+      const trail = document.createElement('canvas');
+      trail.width = cv.width; trail.height = cv.height;
+      const tctx = trail.getContext('2d'); tctx.scale(dpr, dpr); tctx.lineCap = 'round';
+
+      function at(line, t) {
+        const target = Math.max(0, Math.min(line.len, t * line.len));
+        let i = 1; while (i < line.cum.length && line.cum[i] < target) i++;
+        i = Math.min(i, line.pts.length - 1);
+        const segLen = (line.cum[i] - line.cum[i - 1]) || 1, segT = (target - line.cum[i - 1]) / segLen;
+        const [x0, y0] = line.pts[i - 1], [x1, y1] = line.pts[i];
+        return { x: x0 + (x1 - x0) * segT, y: y0 + (y1 - y0) * segT, ang: Math.atan2(y1 - y0, x1 - x0) };
+      }
+      const camLines = lines.filter(l => l.camara);
+      function spawn() {
+        const useCam = camLines.length && Math.random() < 0.6;
+        return {
+          line: (useCam ? camLines : lines)[Math.floor(Math.random() * (useCam ? camLines.length : lines.length))],
+          t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1,
+          speed: 0.00035 + Math.random() * 0.00045,
+          crashAt: 0, prev: null
+        };
+      }
+      const N = Math.min(55, Math.max(28, Math.round(lines.length / 10)));
+      const cars = d3.range(N).map(spawn);
+      const CRASH = '147,51,234'; // morado vivo, no rojo, para mantener todo en la misma gama
+
+      function tick(now) {
+        tctx.globalCompositeOperation = 'destination-out';
+        tctx.fillStyle = 'rgba(255,255,255,0.045)';
+        tctx.fillRect(0, 0, w, h);
+        tctx.globalCompositeOperation = 'source-over';
+
+        cars.forEach(c => {
+          if (c.crashAt) {
+            const el = now - c.crashAt;
+            if (el > 1000) { Object.assign(c, spawn()); return; }
+            const pos = at(c.line, c.t);
+            const r = 7 + 6 * Math.sin(el / 180);
+            tctx.save();
+            tctx.shadowColor = `rgba(${CRASH},.95)`; tctx.shadowBlur = 22;
+            tctx.beginPath(); tctx.arc(pos.x, pos.y, Math.max(1, r), 0, 7);
+            tctx.fillStyle = `rgba(${CRASH},${Math.max(0, 1 - el / 1000)})`;
+            tctx.fill(); tctx.restore();
+            return;
+          }
+          c.t += c.speed * c.dir;
+          if (c.t > 1 || c.t < 0) {
+            if (Math.random() < 0.05) { c.crashAt = now; return; }
+            Object.assign(c, spawn()); return;
+          }
+          if (Math.random() < 0.0008) { c.crashAt = now; return; }
+          const pos = at(c.line, c.t);
+          const col = c.line.camara ? COL.acc3 : COL.acc;
+          if (c.prev) {
+            tctx.save();
+            tctx.shadowColor = col; tctx.shadowBlur = 16;
+            tctx.strokeStyle = col; tctx.lineWidth = 4.5; tctx.globalAlpha = 1;
+            tctx.beginPath(); tctx.moveTo(c.prev.x, c.prev.y); tctx.lineTo(pos.x, pos.y); tctx.stroke();
+            tctx.restore();
+          }
+          c.prev = pos;
+        });
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(off, 0, 0, w, h);
+        ctx.drawImage(trail, 0, 0, w, h);
+        heroRaf = requestAnimationFrame(tick);
+      }
+      heroRaf = requestAnimationFrame(tick);
+    }
+    drawHero();
+    let rtHero; addEventListener('resize', () => { clearTimeout(rtHero); rtHero = setTimeout(drawHero, 200); });
+
+    const coverDown = document.getElementById('mecCoverDown');
+    if (coverDown) coverDown.addEventListener('click', () => {
+      document.getElementById('h-ctx').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+    });
+
+    // ----- Nota de fuentes -----
     d3.select('#mecNota').html(
       `<b>Fuentes:</b> SIGAT (siniestralidad 2018–2022), Cámaras Salvavidas Bogotá y Bitcarrier (velocidad y red vial), Datos Abiertos de Movilidad Bogotá. ` +
       `Siniestros graves = con heridos o con muertos, a ${meta.radio_m} m o menos del sitio; el control es el resto de la ciudad. ` +
-      `Antes: ${fmtMes(meta.antes[0])}–${fmtMes(meta.antes[1])}; después: ${fmtMes(meta.despues[0])}–${fmtMes(meta.despues[1])}. Las tasas son por mes porque los dos periodos no duran lo mismo. ` +
-      `<br><b>Limitaciones:</b> los siniestros de 2018 a 2021 están geocodificados desde la dirección (error mediano ${errGeo}); por eso se usa un radio de ${meta.radio_m} m. ` +
-      `Desde octubre de 2021 casi no hay datos de velocidad en los tramos con cámara, así que el «después» de velocidad es más corto que el de siniestros. ` +
-      `2020 se excluye por la cuarentena. ` +
-      `Varios sitios comparten el mismo tramo de sensor, así que los ${nf(meta.n_correlacion)} sitios de la correlación tienen solo ${V.n_tramos_distintos} combinaciones de velocidad distintas: es una señal descriptiva, no una prueba causal. ` +
-      (actores ? `En el explorador, las víctimas «antes» son de ${fmtMes(actores.antes[0])}–${fmtMes(actores.antes[1])}, porque el anuario 2018 no separa motociclistas ni ciclistas; los sitios con menos de ${MIN_VICTIMAS} víctimas en algún periodo se marcan como «pocos datos».` : '')
+      `Antes: ${fmtMes(meta.antes[0])}–${fmtMes(meta.antes[1])}; después: ${fmtMes(meta.despues[0])}–${fmtMes(meta.despues[1])}. Las tasas son por mes porque los dos periodos no duran lo mismo.`
     );
 
     // ======================================================================
@@ -249,7 +391,7 @@
     const gRoads = gMap.append('g').attr('class', 'mec-l-roads');
     const gMed = gMap.append('g').attr('class', 'mec-l-med').style('opacity', 0);
     const gScat = svg.append('g').attr('class', 'mec-l-scat').style('opacity', 0);
-    const gDots = svg.append('g').attr('class', 'mec-l-dots');
+    const gDots = svg.append('g').attr('class', 'mec-l-dots').attr('clip-path', 'url(#mecMapClip)');
     const gScatTop = svg.append('g').attr('class', 'mec-l-scattop').style('opacity', 0);
     const capas = { roads: gRoads, med: gMed, scat: gScat, scatTop: gScatTop };
 
@@ -283,7 +425,14 @@
 
     // Zoom de la escena 2 sobre el sitio de ejemplo
     const K_EJ = 9;
-    const tEj = d3.zoomIdentity.translate(W / 2, H / 2).scale(K_EJ).translate(-ejemplo._mx, -ejemplo._my);
+    // Centra verticalmente en los sitios vecinos visibles a este zoom (no solo en el punto del ejemplo),
+    // más el espacio de la etiqueta de arriba; si no hay vecinos cerca, cae de vuelta en el punto del ejemplo.
+    const viewR = (H / K_EJ) * 1.4;
+    const cercaEj = sitios.filter(s => Math.hypot(s._mx - ejemplo._mx, s._my - ejemplo._my) <= viewR);
+    const yTopEj = Math.min(...cercaEj.map(s => s._my - s._r250)) - 24 / K_EJ;
+    const yBotEj = Math.max(...cercaEj.map(s => s._my + s._r250)) + 10 / K_EJ;
+    const centerYEj = (yTopEj + yBotEj) / 2;
+    const tEj = d3.zoomIdentity.translate(W / 2, H / 2).scale(K_EJ).translate(-ejemplo._mx, -centerYEj);
     function zoomMapa(t, D) {
       gMap.transition('zoom').duration(D).attr('transform', t.toString());
       medCentros.transition('zoom').duration(D).attr('r', 2.4 / t.k);
@@ -330,43 +479,49 @@
         leyenda(`<span class="mec-sw"><b>Siniestros graves frente al control:</b></span>` +
           barra(t => bivColor(t * S_FULL, null), `${fmt(-S_FULL)} % o menos`, `${fmt(S_FULL)} % o más`) +
           (hayVacios('sin') ? swVacio('pocos datos') : '') +
-          `<span class="mec-nota">Tamaño del círculo: siniestros graves por año antes de las cámaras. Los mismos colores son el eje vertical del mapa «Coinciden».</span>`);
+          `<span class="mec-nota">Tamaño del círculo: siniestros graves por año antes de las cámaras.</span>`);
       } else if (capa === 'vel') {
         leyenda(`<span class="mec-sw"><b>Velocidad p85 nocturna frente al control:</b></span>` +
           barra(t => bivColor(null, t * V_FULL), `${fmt(-V_FULL)} km/h o menos`, `${fmt(V_FULL)} km/h o más`) +
           (hayVacios('vel') ? swVacio('sin sensor cercano') : '') +
-          `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche). Los mismos colores son el eje horizontal del mapa «Coinciden».</span>`);
+          `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche).</span>`);
       } else {
-        const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
-        leyenda(leyenda2D() +
-          `<table class="mec-tabla" aria-label="Sitios según la dirección del cambio">
-             <tr><th></th><th>Velocidad baja</th><th>Velocidad sube</th></tr>
-             <tr><th>Siniestros bajan</th><td class="si" style="background:${BIV.bb}">${t.baja.baja}</td><td class="si" style="background:${BIV.bs}">${t.baja.sube}</td></tr>
-             <tr><th>Siniestros suben</th><td class="si" style="background:${BIV.sb}">${t.sube.baja}</td><td class="si" style="background:${BIV.ss}">${t.sube.sube}</td></tr>
-           </table>` +
-          `<span class="mec-nota">Otros ${nf(res.n_cambio_pequeno ?? 0)} sitios tienen un cambio pequeño en alguna de las dos (entre ${fmt(uS2)} y ${fmt(uS3)} % o entre ${fmt(uV2)} y ${fmt(uV3)} km/h).</span>`);
+        leyenda(leyenda2D(7, false) + tabla2x2());
       }
     }
 
+    function tabla2x2() {
+      const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
+      return `<table class="mec-tabla" aria-label="Sitios según la dirección del cambio">
+          <tr><th></th><th>Velocidad baja</th><th>Velocidad sube</th></tr>
+          <tr><th>Siniestros bajan</th><td class="si" style="background:${BIV.bb}">${t.baja.baja}</td><td class="si" style="background:${BIV.bs}">${t.baja.sube}</td></tr>
+          <tr><th>Siniestros suben</th><td class="si" style="background:${BIV.sb}">${t.sube.baja}</td><td class="si" style="background:${BIV.ss}">${t.sube.sube}</td></tr>
+        </table>`;
+    }
+
     // ----- Escenas -----
-    let escena = -1, capa = 'sin';
-    const CAPA_DE_ESCENA = { 2: 'sin', 3: 'vel', 4: 'coi' };
+    let escena = -1, capa = 'sin', hlQuadrante;
+    const CAPA_DE_ESCENA = { 3: 'sin', 4: 'vel', 5: 'coi' };
 
     function dibujarMedicion(i, D) {
       mostrar(['roads', 'med'], D);
       ocultarSitios(D);
-      medCirc.transition('m').duration(D).style('opacity', i === 1 ? 1 : 0);
-      medEj.transition('m').duration(D).style('opacity', i === 1 ? 1 : 0);
-      medTramosCam.transition('m').duration(D).attr('stroke', i === 1 ? COL.acc2 : COL.acc);
-      zoomMapa(i === 1 ? tEj : d3.zoomIdentity, D);
+      const conCirculos = i === 1 || i === 2;
+      medCirc.transition('m').duration(D).style('opacity', conCirculos ? 1 : 0);
+      medEj.transition('m').duration(D).style('opacity', i === 2 ? 1 : 0);
+      medTramosCam.transition('m').duration(D).attr('stroke', conCirculos ? COL.acc2 : COL.acc);
+      zoomMapa(i === 2 ? tEj : d3.zoomIdentity, D);
       if (i === 0) {
         leyenda(`<span class="mec-sw"><i class="linea" style="background:${COL.road}"></i>tramo con sensor de velocidad (${V.n_tramos})</span>` +
           sw(COL.acc, `tramo con cámara a 50 m o menos (${V.n_tramos_cam_red})`, 'linea') +
           `<span class="mec-nota">La velocidad se resume con el percentil 85 (p85): la velocidad que solo supera el 15 % más rápido de los vehículos.</span>`);
-      } else {
+      } else if (i === 1) {
         leyenda(sw(COL.acc3, `radio de ${meta.radio_m} m alrededor del sitio: sus siniestros`) +
-          sw(COL.ink, `tramos a 50 m o menos: su velocidad`, 'linea') +
           `<span class="mec-nota">Si un siniestro queda cerca de dos sitios, cuenta para el más cercano.</span>`);
+      } else {
+        leyenda(sw(COL.ink, `tramos a 50 m o menos: su velocidad`, 'linea') +
+          sw(COL.acc3, `radio de ${meta.radio_m} m alrededor del sitio: sus siniestros`) +
+          `<span class="mec-nota">Acercado sobre ${pretty(ejemplo.corredor)}, el sitio con más tramos asignados.</span>`);
       }
     }
 
@@ -381,18 +536,19 @@
       leyendaMapa(capa);
     }
 
-    function dibujarDispersion(D) {
+    function dibujarDispersion(D, i) {
       mostrar(['scat', 'scatTop'], D);
       zoomMapa(d3.zoomIdentity, D);
+      hlQuadrante.transition('hl').duration(D).style('opacity', i === 6 ? 1 : 0);
       dots.style('pointer-events', d => d._valid ? null : 'none').attr('stroke-dasharray', d => d._valid ? estilo(d, 'coi').dash : null)
         .transition('pos').duration(D)
         .attr('cx', d => d._valid ? d._sx : d._mx).attr('cy', d => d._valid ? d._sy : d._my).attr('r', d => d._r)
         .attr('fill', d => estilo(d, 'coi').fill).attr('stroke', COL.ink2).attr('stroke-width', 0.8)
         .style('opacity', d => d._valid ? 1 : 0);
-      leyenda(leyenda2D(5) +
+      leyenda(leyenda2D(5, false) + tabla2x2() +
         `<span class="mec-sw"><b>r = ${nf(meta.r_pearson, 2)}</b>&nbsp;(Spearman ${nf(meta.r_spearman, 2)}, n = ${nf(meta.n_correlacion)})</span>` +
         sw(COL.ink2, 'tendencia (mínimos cuadrados)', 'linea') +
-        `<span class="mec-nota">El fondo y los puntos usan los mismos colores del mapa «Coinciden». Los sitios que comparten sensor quedan en la misma columna. Las flechas marcan valores que se salen del eje.</span>`);
+        `<span class="mec-nota">Los sitios que comparten sensor quedan en la misma columna. Las flechas marcan valores que se salen del eje.</span>`);
     }
 
     function ocultarSitios(D) {
@@ -403,23 +559,23 @@
       if (i === escena) return;
       escena = i;
       const D = animate ? dur(750) : 0;
-      const conToggle = i >= 2 && i <= 4;
+      const conToggle = i >= 3 && i <= 5;
       d3.select('#mecToggle').classed('mec-toggle-off', !conToggle).attr('aria-hidden', conToggle ? null : 'true')
         .selectAll('button').attr('tabindex', conToggle ? null : -1);
       tipHide();
-      if (i <= 1) {
+      if (i <= 2) {
         dibujarMedicion(i, D);
-      } else if (i <= 4) {
+      } else if (i <= 5) {
         capa = CAPA_DE_ESCENA[i];
         d3.select('#mecToggle').selectAll('button').attr('aria-pressed', d => d[0] === capa);
         dibujarMapa(D);
       } else {
-        dibujarDispersion(D);
+        dibujarDispersion(D, i);
       }
     }
 
     seg('#mecToggle', [['sin', 'Siniestros'], ['vel', 'Velocidad'], ['coi', 'Coinciden']], () => capa,
-      v => { capa = v; if (escena >= 2 && escena <= 4) dibujarMapa(dur(500)); });
+      v => { capa = v; if (escena >= 3 && escena <= 5) dibujarMapa(dur(500)); });
 
     dibujarEjesDispersion();
 
@@ -459,6 +615,11 @@
       ];
       g.selectAll('text.q').data(q).join('text').attr('class', d => `q ${d[4]} halo`)
         .attr('x', d => d[0]).attr('y', d => d[1]).attr('text-anchor', d => d[2]).text(d => d[3]);
+
+      // Caja que resalta el cuadrante "bajan los dos", solo visible en la escena que lo explica
+      hlQuadrante = gScatTop.append('rect').attr('class', 'mec-hlbox')
+        .attr('x', M.l).attr('y', sy(0)).attr('width', sx(0) - M.l).attr('height', H - M.b - sy(0))
+        .attr('fill', 'none').attr('stroke', COL.ink).attr('stroke-width', 2).style('opacity', 0);
 
       const rec = meta.recta || {};
       if (rec.pendiente != null && rec.intercepto != null) {
@@ -659,7 +820,6 @@
         escalarSitios();
         leyendaX();
         lado();
-        resumen();
         ficha();
       }
 
@@ -686,6 +846,7 @@
 
       function lado() {
         gSide.selectAll('*').remove();
+        d3.select('#xSideLeg').html('');
         if (E.lay === 'vel') {
           const m = medFr[E.fr];
           const hi = tidsSel();
@@ -745,7 +906,7 @@
           d3.select('#xSideSub').text(`Qué porcentaje de las personas heridas o muertas eran ${CAT_PLURAL[c]}, antes (${fmtMes(actores.antes[0])}–${fmtMes(actores.antes[1])}) y después (${fmtMes(actores.despues[0])}–${fmtMes(actores.despues[1])}).`);
           const s = E.sel && E.sel.tipo === 'sitio' ? sitioDe(E.sel.id) : null;
           const xsS = s ? datoSitio(s) : null;
-          const series = [['Cerca', cA, cD, COL.acc, 3.5], ['Resto', kA, kD, COL.ctrl, 2.2]];
+          const series = [['Cerca de cámaras', cA, cD, COL.acc, 3.5], ['Resto de la ciudad', kA, kD, COL.ctrl, 2.2]];
           if (xsS && xsS.a.v != null && xsS.b.v != null) series.push([s.sitio, xsS.a.v, xsS.b.v, COL.ink, 2.5]);
           const vals = series.flatMap(d => [d[1], d[2]]).filter(v => v != null);
           const y = d3.scaleLinear().domain([Math.max(0, d3.min(vals) - 4), d3.max(vals) + 4]).range([SH - 26, 26]);
@@ -753,13 +914,32 @@
           gSide.append('text').attr('class', 'ax').attr('x', xa).attr('y', 14).attr('text-anchor', 'middle').text('Antes');
           gSide.append('text').attr('class', 'ax').attr('x', xd).attr('y', 14).attr('text-anchor', 'middle').text('Después');
           [xa, xd].forEach(x => gSide.append('line').attr('x1', x).attr('x2', x).attr('y1', 22).attr('y2', SH - 20).attr('stroke', COL.line));
-          series.forEach(([nom, a, d, col, w], i) => {
+          // Leyenda de color aparte de los valores, para que el nombre no se pegue a otro cuando los puntos quedan cerca
+          const legFil = d3.select('#xSideLeg');
+          series.forEach(([nom, , , col]) => {
+            legFil.append('span').attr('class', 'mec-sw').html(`<i style="background:${col}"></i>${nom}`);
+          });
+          series.forEach(([, a, d, col, w], i) => {
             gSide.append('line').attr('x1', xa).attr('x2', xd).attr('y1', y(a)).attr('y2', y(d)).attr('stroke', col).attr('stroke-width', w)
               .attr('stroke-dasharray', i === 2 ? '5 4' : null);
             gSide.append('circle').attr('cx', xa).attr('cy', y(a)).attr('r', 4).attr('fill', col);
             gSide.append('circle').attr('cx', xd).attr('cy', y(d)).attr('r', 4).attr('fill', col);
-            gSide.append('text').attr('class', 'ax').attr('x', xa - 8).attr('y', y(a) + 4).attr('text-anchor', 'end').text(`${nom} ${pct(a)}`);
-            gSide.append('text').attr('class', 'labb').attr('x', xd + 8).attr('y', y(d) + 4).text(pct(d));
+          });
+          // Separa las etiquetas de valor cuando dos puntos quedan muy cerca en y, para que no se superpongan
+          function colocar(ys) {
+            const orden = ys.map((y0, i) => ({ y0, i })).sort((p, q) => p.y0 - q.y0);
+            const MIN = 14;
+            for (let k = 1; k < orden.length; k++) {
+              if (orden[k].y0 - orden[k - 1].y0 < MIN) orden[k].y0 = orden[k - 1].y0 + MIN;
+            }
+            const out = []; orden.forEach(o => { out[o.i] = o.y0; });
+            return out;
+          }
+          const yaLbl = colocar(series.map(([, a]) => y(a)));
+          const ydLbl = colocar(series.map(([, , d]) => y(d)));
+          series.forEach(([, a, d, col], i) => {
+            gSide.append('text').attr('class', 'ax').attr('x', xa - 8).attr('y', yaLbl[i] + 4).attr('text-anchor', 'end').text(pct(a));
+            gSide.append('text').attr('class', 'labb').attr('x', xd + 8).attr('y', ydLbl[i] + 4).text(pct(d));
           });
           const filas = sitios.map(s => ({ s, x: datoSitio(s) })).filter(o => o.x.v != null);
           const bajan = filas.filter(o => o.x.v <= -2).length, suben = filas.filter(o => o.x.v >= 2).length;
@@ -768,19 +948,13 @@
           d3.select('#xSideTxt').html(
             `<p>Cerca de las cámaras: de <b>${pct(cA)}</b> a <b>${pct(cD)}</b> (${fmt(cD - cA, 1)} puntos). Resto de la ciudad: de <b>${pct(kA)}</b> a <b>${pct(kD)}</b> (${fmt(kD - kA, 1)} puntos).</p>` +
             `<p>De ${filas.length} sitios con datos suficientes, en <b>${bajan}</b> su participación bajó 2 puntos o más frente al control y en <b>${suben}</b> subió.</p>` +
-            `<p class="side-t" style="margin-top:4px">Más bajó · más subió (puntos)</p>` +
+            `<p class="side-t" style="margin-top:4px">Sitios donde más cambió la participación de ${CAT_PLURAL[c]} frente al control</p>` +
             `<ul class="v2-rank">${top.slice(0, 3).map(li).join('')}${top.slice(-3).reverse().map(li).join('')}</ul>`);
-          d3.selectAll('#xSideTxt .v2-rank li').on('click', function () { seleccionar({ tipo: 'sitio', id: this.dataset.sitio }, true); });
+          d3.selectAll('#xSideTxt .v2-rank li').on('click', function () {
+            const id = this.dataset.sitio;
+            seleccionar(E.sel && E.sel.tipo === 'sitio' && E.sel.id === id ? null : { tipo: 'sitio', id }, true);
+          });
         }
-      }
-
-      function resumen() {
-        const s = E.sel && E.sel.tipo === 'sitio' ? sitioDe(E.sel.id) : null;
-        const f = E.sel && E.sel.tipo === 'tramo' ? featDe(E.sel.id) : null;
-        const selTxt = s ? `, con el sitio <b>${pretty(s.corredor)}</b> (${s.sitio}) seleccionado` : f ? `, con el tramo <b>${nombreTramo(f.properties)}</b> seleccionado` : '';
-        d3.select('#xSum').html(E.lay === 'vel'
-          ? `Viendo <b>velocidad por tramo</b> en la franja <b>${FR_LABEL[E.fr].toLowerCase()}</b>${selTxt}. Haz clic en un tramo, en un sitio o en un punto de la gráfica de la derecha.`
-          : `Viendo <b>víctimas por sitio</b>: ${CAT_PLURAL[E.cond]}${selTxt}. Azul: su participación bajó más que en el resto de la ciudad; naranja: subió más.`);
       }
 
       // ----- Detalle (debajo del mapa, no encima) -----

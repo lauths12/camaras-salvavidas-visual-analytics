@@ -18,39 +18,53 @@
 .mec-back:hover{text-decoration:underline;text-underline-offset:3px}
 .mec-back:focus-visible{outline:3px solid var(--acc3);outline-offset:2px}
 
-/* Intro y cierre */
-.mec-intro{padding-top:36px}
-.mec-intro h1{font-size:clamp(34px,4.6vw,58px);line-height:1.06;max-width:20ch}
+/* Portada: mapa de fondo lavado en blanco, titular centrado, flecha para bajar */
+.mec-cover{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg)}
+#heroRoads{position:absolute;inset:0;width:100%;height:100%}
+.mec-cover-wash{position:absolute;inset:0;background:rgba(255,255,255,.55);pointer-events:none}
+.mec-cover-in{position:relative;z-index:1;max-width:900px;width:100%;margin:0 auto;padding:0 var(--gut);display:grid;justify-items:center;gap:32px;text-align:center}
+.mec-cover h1{font-size:clamp(26px,3.4vw,44px);line-height:1.2;max-width:26ch}
+.mec-cover-down{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-size:18px;cursor:pointer;animation:mecDown 2s ease-in-out infinite}
+.mec-cover-down:hover{background:var(--ink);color:#fff}
+@keyframes mecDown{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+@media (prefers-reduced-motion: reduce){.mec-cover-down{animation:none}}
+
+/* Cifras clave, justo debajo de la portada */
+.mec-cover-stats{padding-top:48px;display:grid;gap:18px;max-width:720px}
+
+/* Cierre */
 .mec-end{padding-top:40px;padding-bottom:80px}
+.mec-end .source{max-width:none}
 
 /* Scrollytelling: gráfica sticky a la izquierda, pasos a la derecha */
-.mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:44px;align-items:start}
-.mec-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:16px 0}
+.mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,2fr);gap:44px;align-items:start}
+.mec-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;padding:20px 0 16px}
+.mec-graphic .chart{background:none;box-shadow:none;border:0;padding:0}
 .mec-graphic svg{width:100%;height:auto;max-height:calc(100vh - 170px)}
 .mec-graphic .seg{align-self:flex-start}
 .mec-toggle-off{visibility:hidden}
 .mec-steps{padding:28vh 0 45vh}
 .mec-step{min-height:80vh;display:flex;align-items:center}
 .mec-step[hidden]{display:none!important}
-.mec-card{display:grid;gap:12px;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--glass-line);box-shadow:var(--shadow);padding:22px 24px;opacity:.45;transform:translateY(8px);transition:opacity .35s,transform .35s}
+.mec-card{display:grid;gap:10px;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--glass-line);box-shadow:var(--shadow);padding:16px 18px;opacity:.45;transform:translateY(8px);transition:opacity .35s,transform .35s}
 .mec-step.is-active .mec-card{opacity:1;transform:none}
-.mec-card p{font-size:18px;line-height:1.55;color:var(--ink2)}
+.mec-card p{font-size:16px;line-height:1.55;color:var(--ink2)}
 .mec-card b{color:var(--ink)}
-.mec-card .mec-n{font:700 12px var(--f-disp);letter-spacing:.1em;color:var(--acc);text-transform:uppercase;line-height:1.4}
 .mec-t-baja{color:var(--mec-baja-fuerte)!important}
 .mec-t-sube{color:var(--mec-sube-fuerte)!important}
 
 /* Leyenda bajo la gráfica */
-.mec-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:13.5px;line-height:1.35;color:var(--ink2);min-height:44px}
+.mec-chartbox{position:relative}
+.mec-legend{position:absolute;top:30px;left:10px;z-index:3;max-width:250px;display:grid;gap:4px;font-size:11.5px;line-height:1.3;color:var(--ink2);background:var(--glass-strong);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);border:1px solid var(--glass-line);padding:8px 10px}
 .mec-legend .mec-sw{display:inline-flex;align-items:center;gap:6px}
 .mec-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--mec-borde);flex:none}
 .mec-legend i.vacio{background:#fff;border-style:dashed}
 .mec-legend i.linea{width:22px;height:3px;border:0;border-radius:0}
 .mec-legend i.caja{border-radius:0;width:14px}
-.mec-legend .mec-nota{color:var(--muted);flex-basis:100%}
-.mec-tabla{border-collapse:collapse;font-size:13px;width:auto}
-.mec-tabla th,.mec-tabla td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
-.mec-tabla th{font:700 11px var(--f-disp);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.mec-legend .mec-nota{color:var(--muted);padding-top:7px;border-top:1px solid var(--line)}
+.mec-tabla{border-collapse:collapse;font-size:10px;width:auto}
+.mec-tabla th,.mec-tabla td{padding:3px 4px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
+.mec-tabla th{font:700 9.5px var(--f-disp);letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
 .mec-tabla td.si{font-weight:700;color:#fff}
 .mec-tabla td.baja{background:var(--mec-baja-fuerte)}
 .mec-tabla td.sube{background:var(--mec-sube-fuerte)}
