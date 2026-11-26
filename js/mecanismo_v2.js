@@ -223,19 +223,9 @@
       this.textContent = v == null ? '—' : v;
     });
 
-    // ----- Portada: cifras clave sobre la foto de fondo -----
-    function drawHero() {
-      const tiles = [
-        { big: `${V.n_bajan_ambos} de ${V.n_con_ambos}`, cls: 'neg', d: 'sitios donde bajaron a la vez la velocidad y la fatalidad' },
-        { big: nf(V.n_suben_ambos), cls: 'pos', d: 'sitios donde subieron las dos a la vez' },
-        { big: `r = ${V.r_pearson}`, cls: 'mid', d: 'correlación entre cambio de velocidad y de siniestros, sitio por sitio' }
-      ];
-      d3.select('#mecHeroStats').selectAll('div').data(tiles).join('div').html(d => `<span class="big ${d.cls}">${d.big}</span><span>${d.d}</span>`);
-    }
-    drawHero();
     const coverDown = document.getElementById('mecCoverDown');
     if (coverDown) coverDown.addEventListener('click', () => {
-      document.querySelector('.mec-cover-stats').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+      document.getElementById('mecanismo').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
     });
 
     // ----- Nota de fuentes y limitaciones -----
