@@ -503,7 +503,7 @@
     }
 
     // ----- Escenas -----
-    let escena = -1, capa = 'sin';
+    let escena = -1, capa = 'sin', hlQuadrante;
     const CAPA_DE_ESCENA = { 3: 'sin', 4: 'vel', 5: 'coi' };
 
     function dibujarMedicion(i, D) {
@@ -539,9 +539,10 @@
       leyendaMapa(capa);
     }
 
-    function dibujarDispersion(D) {
+    function dibujarDispersion(D, i) {
       mostrar(['scat', 'scatTop'], D);
       zoomMapa(d3.zoomIdentity, D);
+      hlQuadrante.transition('hl').duration(D).style('opacity', i === 6 ? 1 : 0);
       dots.style('pointer-events', d => d._valid ? null : 'none').attr('stroke-dasharray', d => d._valid ? estilo(d, 'coi').dash : null)
         .transition('pos').duration(D)
         .attr('cx', d => d._valid ? d._sx : d._mx).attr('cy', d => d._valid ? d._sy : d._my).attr('r', d => d._r)
@@ -572,7 +573,7 @@
         d3.select('#mecToggle').selectAll('button').attr('aria-pressed', d => d[0] === capa);
         dibujarMapa(D);
       } else {
-        dibujarDispersion(D);
+        dibujarDispersion(D, i);
       }
     }
 
@@ -617,6 +618,11 @@
       ];
       g.selectAll('text.q').data(q).join('text').attr('class', d => `q ${d[4]} halo`)
         .attr('x', d => d[0]).attr('y', d => d[1]).attr('text-anchor', d => d[2]).text(d => d[3]);
+
+      // Caja que resalta el cuadrante "bajan los dos", solo visible en la escena que lo explica
+      hlQuadrante = gScatTop.append('rect').attr('class', 'mec-hlbox')
+        .attr('x', M.l).attr('y', sy(0)).attr('width', sx(0) - M.l).attr('height', H - M.b - sy(0))
+        .attr('fill', 'none').attr('stroke', COL.ink).attr('stroke-width', 2).style('opacity', 0);
 
       const rec = meta.recta || {};
       if (rec.pendiente != null && rec.intercepto != null) {
