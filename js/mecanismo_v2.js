@@ -312,7 +312,7 @@
             const el = now - c.crashAt;
             if (el > 1000) { Object.assign(c, spawn()); return; }
             const pos = at(c.line, c.t);
-            const r = 7 + 5 * Math.sin(el / 230);
+            const r = 7 + 6 * Math.sin(el / 180);
             tctx.save();
             tctx.shadowColor = `rgba(${CRASH},.95)`; tctx.shadowBlur = 22;
             tctx.beginPath(); tctx.arc(pos.x, pos.y, Math.max(1, r), 0, 7);
@@ -322,10 +322,10 @@
           }
           c.t += c.speed * c.dir;
           if (c.t > 1 || c.t < 0) {
-            if (Math.random() < 0.025) { c.crashAt = now; return; }
+            if (Math.random() < 0.05) { c.crashAt = now; return; }
             Object.assign(c, spawn()); return;
           }
-          if (Math.random() < 0.0004) { c.crashAt = now; return; }
+          if (Math.random() < 0.0008) { c.crashAt = now; return; }
           const pos = at(c.line, c.t);
           const col = c.line.camara ? COL.acc3 : COL.acc;
           if (c.prev) {
