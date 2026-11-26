@@ -61,8 +61,8 @@
 .mec-legend i.linea{width:22px;height:3px;border:0;border-radius:0}
 .mec-legend i.caja{border-radius:0;width:14px}
 .mec-legend .mec-nota{color:var(--muted);padding-top:7px;border-top:1px solid var(--line)}
-.mec-tabla{border-collapse:collapse;font-size:11px;width:auto}
-.mec-tabla th,.mec-tabla td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
+.mec-tabla{border-collapse:collapse;font-size:10px;width:auto}
+.mec-tabla th,.mec-tabla td{padding:3px 4px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
 .mec-tabla th{font:700 9.5px var(--f-disp);letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
 .mec-tabla td.si{font-weight:700;color:#fff}
 .mec-tabla td.baja{background:var(--mec-baja-fuerte)}
