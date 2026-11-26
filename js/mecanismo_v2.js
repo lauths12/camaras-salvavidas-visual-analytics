@@ -223,6 +223,42 @@
       this.textContent = v == null ? '—' : v;
     });
 
+    // ----- Portada: mapa de fondo + cifras clave -----
+    function drawHero() {
+      const cv = document.getElementById('heroRoads');
+      if (!cv) return;
+      const box = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = box.width * dpr; cv.height = box.height * dpr;
+      const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+      const w = box.width, h = box.height, left = w > 820 ? w * 0.5 : 0;
+      const pj = d3.geoMercator().fitExtent([[left, 20], [w - 20, h - 20]], tramos);
+      const p = d3.geoPath(pj, ctx);
+      ctx.clearRect(0, 0, w, h); ctx.lineCap = 'round';
+      tramos.features.forEach(f => {
+        ctx.beginPath(); p(f);
+        ctx.strokeStyle = COL.road; ctx.globalAlpha = f.properties.con_camara ? .9 : .5;
+        ctx.lineWidth = f.properties.con_camara ? 1.6 : 1;
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      sitios.forEach(s => {
+        const [x, y] = pj([s.lon, s.lat]);
+        const col = s._valid ? bivColor(s.cambio_vs_control_pct, s.delta_p85_vs_control) : COL.muted;
+        ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 7);
+        ctx.fillStyle = col; ctx.strokeStyle = COL.fondo; ctx.lineWidth = 1.2;
+        ctx.fill(); ctx.stroke();
+      });
+
+      const tiles = [
+        { big: `${V.n_bajan_ambos} de ${V.n_con_ambos}`, cls: 'neg', d: 'sitios donde bajaron a la vez la velocidad y la fatalidad' },
+        { big: nf(V.n_suben_ambos), cls: 'pos', d: 'sitios donde subieron las dos a la vez' },
+        { big: `r = ${V.r_pearson}`, cls: 'mid', d: 'correlación entre cambio de velocidad y de siniestros, sitio por sitio' }
+      ];
+      d3.select('#mecHeroStats').selectAll('div').data(tiles).join('div').html(d => `<span class="big ${d.cls}">${d.big}</span><span>${d.d}</span>`);
+    }
+    drawHero();
+    let rtHero; addEventListener('resize', () => { clearTimeout(rtHero); rtHero = setTimeout(drawHero, 200); });
+
     // ----- Nota de fuentes y limitaciones -----
     const errGeo = geo && geo.error_mediano_m ? `${nf(geo.error_mediano_m)} m` : 'unos 170 m';
     d3.select('#mecNota').html(
