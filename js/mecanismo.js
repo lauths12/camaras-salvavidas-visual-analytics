@@ -84,6 +84,19 @@
     const aniosAntes = (meta.meses_antes || 22) / 12;
     const sitios = mec.sitios.slice();
     const proj = d3.geoMercator().fitExtent([[30, 24], [W - 30, H - 24]], tramos);
+    {
+      // La geografía es angosta y alta; fitExtent (contain) deja franjas vacías a los lados.
+      // Se reescala tipo "cover" para que llene el ancho, recortando arriba/abajo en vez de dejar espacio en blanco.
+      const boxW = W - 60, boxH = H - 48;
+      const b0 = d3.geoPath(proj).bounds(tramos);
+      const drawnW = b0[1][0] - b0[0][0], drawnH = b0[1][1] - b0[0][1];
+      const zoom = Math.max(boxW / drawnW, boxH / drawnH);
+      proj.scale(proj.scale() * zoom);
+      const b1 = d3.geoPath(proj).bounds(tramos);
+      const curCx = (b1[0][0] + b1[1][0]) / 2, curCy = (b1[0][1] + b1[1][1]) / 2;
+      const [tx, ty] = proj.translate();
+      proj.translate([tx + (W / 2 - curCx), ty + (H / 2 - curCy)]);
+    }
     const path = d3.geoPath(proj);
     const rS = d3.scaleSqrt().domain([0, d3.max(sitios, s => s.graves_antes / aniosAntes) || 1]).range([4, 12]);
     sitios.forEach(s => {
@@ -187,11 +200,13 @@
     const defs = svg.append('defs');
     defs.append('clipPath').attr('id', 'mecClip').append('rect')
       .attr('x', M.l).attr('y', M.t).attr('width', W - M.l - M.r).attr('height', H - M.t - M.b);
-    const gRoads = svg.append('g').attr('class', 'mec-l-roads');
+    defs.append('clipPath').attr('id', 'mecMapClip').append('rect')
+      .attr('x', 30).attr('y', 24).attr('width', W - 60).attr('height', H - 48);
+    const gRoads = svg.append('g').attr('class', 'mec-l-roads').attr('clip-path', 'url(#mecMapClip)');
     const gScat = svg.append('g').attr('class', 'mec-l-scat').style('opacity', 0);
     const gBox = svg.append('g').attr('class', 'mec-l-box').style('opacity', 0);
     const gSlope = svg.append('g').attr('class', 'mec-l-slope').style('opacity', 0);
-    const gDots = svg.append('g').attr('class', 'mec-l-dots');
+    const gDots = svg.append('g').attr('class', 'mec-l-dots').attr('clip-path', 'url(#mecMapClip)');
     const gScatTop = svg.append('g').attr('class', 'mec-l-scattop').style('opacity', 0);
     const capas = { roads: gRoads, scat: gScat, box: gBox, slope: gSlope, scatTop: gScatTop };
 
