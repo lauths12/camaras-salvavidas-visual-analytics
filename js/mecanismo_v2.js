@@ -223,7 +223,7 @@
       this.textContent = v == null ? '—' : v;
     });
 
-    // ----- Portada: mapa de fondo animado (carritos que a veces chocan) + cifras clave -----
+    // ----- Portada: mapa de fondo animado (tráfico con estelas de luz, choques en rojo) + cifras clave -----
     let heroRaf = null;
     function drawHero() {
       const cv = document.getElementById('heroRoads');
@@ -232,26 +232,29 @@
       const box = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
       cv.width = box.width * dpr; cv.height = box.height * dpr;
       const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-      const w = box.width, h = box.height, left = 0;
-      const pj = d3.geoMercator().fitExtent([[left, 20], [w - 20, h - 20]], tramos);
-      const p = d3.geoPath(pj, ctx);
+      const w = box.width, h = box.height;
+      // Zoom: se proyecta como si el lienzo fuera más chico que el real, así las calles
+      // quedan más grandes y la ciudad se ve densa en vez de un hilo delgado de fondo.
+      const ZOOM = 1.9, padX = w * (ZOOM - 1) / 2, padY = h * (ZOOM - 1) / 2;
+      const pj = d3.geoMercator().fitExtent([[-padX + 10, -padY + 10], [w + padX - 10, h + padY - 10]], tramos);
 
-      // Capa estática (tramos + sitios) pre-renderizada aparte: se redibuja cada frame sin recalcular.
+      // Capa estática (tramos + sitios), pre-renderizada aparte para no recalcularla cada frame.
       const off = document.createElement('canvas');
       off.width = cv.width; off.height = cv.height;
       const octx = off.getContext('2d'); octx.scale(dpr, dpr); octx.lineCap = 'round';
       tramos.features.forEach(f => {
         octx.beginPath(); d3.geoPath(pj, octx)(f);
-        octx.strokeStyle = COL.road; octx.globalAlpha = f.properties.con_camara ? .9 : .5;
-        octx.lineWidth = f.properties.con_camara ? 1.6 : 1;
+        octx.strokeStyle = COL.road; octx.globalAlpha = f.properties.con_camara ? .95 : .55;
+        octx.lineWidth = f.properties.con_camara ? 2.6 : 1.4;
         octx.stroke();
       });
       octx.globalAlpha = 1;
       sitios.forEach(s => {
         const [x, y] = pj([s.lon, s.lat]);
+        if (x < -20 || x > w + 20 || y < -20 || y > h + 20) return;
         const col = s._valid ? bivColor(s.cambio_vs_control_pct, s.delta_p85_vs_control) : COL.muted;
-        octx.beginPath(); octx.arc(x, y, 3.4, 0, 7);
-        octx.fillStyle = col; octx.strokeStyle = COL.fondo; octx.lineWidth = 1.2;
+        octx.beginPath(); octx.arc(x, y, 5.5, 0, 7);
+        octx.fillStyle = col; octx.strokeStyle = COL.fondo; octx.lineWidth = 1.6;
         octx.fill(); octx.stroke();
       });
 
@@ -262,7 +265,7 @@
       ];
       d3.select('#mecHeroStats').selectAll('div').data(tiles).join('div').html(d => `<span class="big ${d.cls}">${d.big}</span><span>${d.d}</span>`);
 
-      // ----- Carritos: cada uno recorre un tramo real; a veces "choca" y brilla en rojo -----
+      // ----- Tráfico: cada carro recorre un tramo real; a veces "choca" y brilla en rojo -----
       const lines = [];
       tramos.features.forEach(f => {
         const g = f.geometry;
@@ -270,12 +273,19 @@
         multi.forEach(coords => {
           if (!coords || coords.length < 2) return;
           const pts = coords.map(c => pj(c));
+          if (pts.every(([x, y]) => x < -40 || x > w + 40 || y < -40 || y > h + 40)) return;
           let len = 0; const cum = [0];
           for (let i = 1; i < pts.length; i++) { len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(len); }
-          if (len > 18) lines.push({ pts, cum, len });
+          if (len > 24) lines.push({ pts, cum, len, camara: f.properties.con_camara });
         });
       });
       if (reduce || !lines.length) { ctx.clearRect(0, 0, w, h); ctx.drawImage(off, 0, 0, w, h); return; }
+
+      // Lienzo de estelas: acumula el paso de cada carro y se desvanece solo, como una
+      // foto de larga exposición del tráfico nocturno.
+      const trail = document.createElement('canvas');
+      trail.width = cv.width; trail.height = cv.height;
+      const tctx = trail.getContext('2d'); tctx.scale(dpr, dpr); tctx.lineCap = 'round';
 
       function at(line, t) {
         const target = Math.max(0, Math.min(line.len, t * line.len));
@@ -285,42 +295,60 @@
         const [x0, y0] = line.pts[i - 1], [x1, y1] = line.pts[i];
         return { x: x0 + (x1 - x0) * segT, y: y0 + (y1 - y0) * segT, ang: Math.atan2(y1 - y0, x1 - x0) };
       }
+      const camLines = lines.filter(l => l.camara);
       function spawn() {
+        const useCam = camLines.length && Math.random() < 0.6;
         return {
-          line: lines[Math.floor(Math.random() * lines.length)],
+          line: (useCam ? camLines : lines)[Math.floor(Math.random() * (useCam ? camLines.length : lines.length))],
           t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1,
-          speed: 0.00028 + Math.random() * 0.00032,
-          crashAt: 0
+          speed: 0.00035 + Math.random() * 0.00045,
+          crashAt: 0, prev: null
         };
       }
-      const N = Math.min(18, Math.max(9, Math.round(lines.length / 28)));
+      const N = Math.min(55, Math.max(28, Math.round(lines.length / 10)));
       const cars = d3.range(N).map(spawn);
 
       function tick(now) {
-        ctx.clearRect(0, 0, w, h);
-        ctx.drawImage(off, 0, 0, w, h);
+        // Las estelas se apagan solas: en vez de borrar, se "resta" opacidad cada cuadro.
+        tctx.globalCompositeOperation = 'destination-out';
+        tctx.fillStyle = 'rgba(255,255,255,0.045)';
+        tctx.fillRect(0, 0, w, h);
+        tctx.globalCompositeOperation = 'source-over';
+
         cars.forEach(c => {
           if (c.crashAt) {
             const el = now - c.crashAt;
-            if (el > 850) { Object.assign(c, spawn()); return; }
+            if (el > 1000) { Object.assign(c, spawn()); return; }
             const pos = at(c.line, c.t);
-            const r = 5 + 4 * Math.sin(el / 80);
-            ctx.beginPath(); ctx.arc(pos.x, pos.y, Math.max(1, r), 0, 7);
-            ctx.fillStyle = `rgba(214,40,40,${Math.max(0, 1 - el / 850)})`;
-            ctx.fill();
+            const r = 7 + 9 * Math.sin(el / 100);
+            tctx.save();
+            tctx.shadowColor = 'rgba(214,40,40,.95)'; tctx.shadowBlur = 22;
+            tctx.beginPath(); tctx.arc(pos.x, pos.y, Math.max(1, r), 0, 7);
+            tctx.fillStyle = `rgba(214,40,40,${Math.max(0, 1 - el / 1000)})`;
+            tctx.fill(); tctx.restore();
             return;
           }
           c.t += c.speed * c.dir;
           if (c.t > 1 || c.t < 0) {
-            if (Math.random() < 0.07) { c.crashAt = now; return; }
+            if (Math.random() < 0.09) { c.crashAt = now; return; }
             Object.assign(c, spawn()); return;
           }
-          if (Math.random() < 0.0011) { c.crashAt = now; return; }
+          if (Math.random() < 0.0016) { c.crashAt = now; return; }
           const pos = at(c.line, c.t);
-          ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(c.dir < 0 ? pos.ang + Math.PI : pos.ang);
-          ctx.fillStyle = COL.acc; ctx.fillRect(-3.5, -1.8, 7, 3.6);
-          ctx.restore();
+          const col = c.line.camara ? COL.acc3 : COL.acc;
+          if (c.prev) {
+            tctx.save();
+            tctx.shadowColor = col; tctx.shadowBlur = 16;
+            tctx.strokeStyle = col; tctx.lineWidth = 4.5; tctx.globalAlpha = 1;
+            tctx.beginPath(); tctx.moveTo(c.prev.x, c.prev.y); tctx.lineTo(pos.x, pos.y); tctx.stroke();
+            tctx.restore();
+          }
+          c.prev = pos;
         });
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(off, 0, 0, w, h);
+        ctx.drawImage(trail, 0, 0, w, h);
         heroRaf = requestAnimationFrame(tick);
       }
       heroRaf = requestAnimationFrame(tick);
