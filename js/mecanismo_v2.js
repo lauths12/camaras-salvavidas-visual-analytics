@@ -229,7 +229,9 @@
       n_correlacion: meta.n_correlacion,
       n_tramos_distintos: res.n_tramos_distintos ?? '—',
       r_fuerza: fuerza,
-      n_tramos_cam: noche.filter(e => e.con_camara).length
+      n_tramos_cam: noche.filter(e => e.con_camara).length,
+      n_cambio_pequeno: nf(res.n_cambio_pequeno ?? 0),
+      rango_cambio_peq: `entre ${fmt(uS2)} y ${fmt(uS3)} % o entre ${fmt(uV2)} y ${fmt(uV3)} km/h`
     };
     d3.selectAll('[data-mec]').each(function () {
       const v = V[this.dataset.mec];
@@ -493,8 +495,7 @@
              <tr><th></th><th>Velocidad baja</th><th>Velocidad sube</th></tr>
              <tr><th>Siniestros bajan</th><td class="si" style="background:${BIV.bb}">${t.baja.baja}</td><td class="si" style="background:${BIV.bs}">${t.baja.sube}</td></tr>
              <tr><th>Siniestros suben</th><td class="si" style="background:${BIV.sb}">${t.sube.baja}</td><td class="si" style="background:${BIV.ss}">${t.sube.sube}</td></tr>
-           </table>` +
-          `<span class="mec-nota">Otros ${nf(res.n_cambio_pequeno ?? 0)} sitios tienen un cambio pequeño en alguna de las dos (entre ${fmt(uS2)} y ${fmt(uS3)} % o entre ${fmt(uV2)} y ${fmt(uV3)} km/h).</span>`);
+           </table>`);
       }
     }
 
