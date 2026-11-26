@@ -507,7 +507,7 @@
       ocultarSitios(D);
       const conCirculos = i === 1 || i === 2;
       medCirc.transition('m').duration(D).style('opacity', conCirculos ? 1 : 0);
-      medEj.transition('m').duration(D).style('opacity', conCirculos ? 1 : 0);
+      medEj.transition('m').duration(D).style('opacity', i === 2 ? 1 : 0);
       medTramosCam.transition('m').duration(D).attr('stroke', conCirculos ? COL.acc2 : COL.acc);
       zoomMapa(i === 2 ? tEj : d3.zoomIdentity, D);
       if (i === 0) {
