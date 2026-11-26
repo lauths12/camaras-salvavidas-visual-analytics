@@ -151,7 +151,7 @@
     const ejemplo = sitios.slice().sort((a, b) => (b.tids || []).length - (a.tids || []).length || b.graves_antes - a.graves_antes)[0];
     const tidsEj = new Set((ejemplo.tids || []).map(String));
 
-    const M = { l: 66, r: 26, t: 40, b: 62 };
+    const M = { l: 220, r: 26, t: 40, b: 62 };
     const xsV = validos.map(s => s.delta_p85_vs_control), ysV = validos.map(s => s.cambio_vs_control_pct);
     const X_TOPE = 12, Y_TOPE = 200;
     const sx = d3.scaleLinear()
@@ -608,7 +608,7 @@
       g.append('text').attr('class', 'ax').attr('x', M.l - 4).attr('y', M.t - 16)
         .text('↑ Cambio de siniestros graves frente al control');
       const q = [
-        [M.l + 120, M.t + 44, 'start', 'Baja la velocidad · suben los siniestros', 'mec-cuad'],
+        [M.l + 8, M.t + 44, 'start', 'Baja la velocidad · suben los siniestros', 'mec-cuad'],
         [W - M.r - 8, M.t + 44, 'end', 'Suben los dos', 'mec-cuad'],
         [M.l + 8, H - M.b - 10, 'start', 'Bajan los dos', 'mec-hl'],
         [W - M.r - 8, H - M.b - 10, 'end', 'Sube la velocidad · bajan los siniestros', 'mec-cuad']
