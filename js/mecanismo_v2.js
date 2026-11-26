@@ -826,7 +826,6 @@
         escalarSitios();
         leyendaX();
         lado();
-        resumen();
         ficha();
       }
 
@@ -962,15 +961,6 @@
             seleccionar(E.sel && E.sel.tipo === 'sitio' && E.sel.id === id ? null : { tipo: 'sitio', id }, true);
           });
         }
-      }
-
-      function resumen() {
-        const s = E.sel && E.sel.tipo === 'sitio' ? sitioDe(E.sel.id) : null;
-        const f = E.sel && E.sel.tipo === 'tramo' ? featDe(E.sel.id) : null;
-        const selTxt = s ? `, con el sitio <b>${pretty(s.corredor)}</b> (${s.sitio}) seleccionado` : f ? `, con el tramo <b>${nombreTramo(f.properties)}</b> seleccionado` : '';
-        d3.select('#xSum').html(E.lay === 'vel'
-          ? `Viendo <b>velocidad por tramo</b> en la franja <b>${FR_LABEL[E.fr].toLowerCase()}</b>${selTxt}. Haz clic en un tramo, en un sitio o en un punto de la gráfica de la derecha.`
-          : `Viendo <b>víctimas por sitio</b>: ${CAT_PLURAL[E.cond]}${selTxt}. Azul: su participación bajó más que en el resto de la ciudad; naranja: subió más.`);
       }
 
       // ----- Detalle (debajo del mapa, no encima) -----
