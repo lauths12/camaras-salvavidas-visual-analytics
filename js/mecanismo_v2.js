@@ -102,16 +102,19 @@
     }
     const gradCSS = (fn) => `linear-gradient(90deg, ${d3.range(0, 1.0001, 0.125).map(t => fn(-1 + 2 * t)).join(',')})`;
     const barra = (fn, izq, der) => `<span class="v2-grad"><span>${izq}</span><i style="background:${gradCSS(fn)}"></i><span>${der}</span></span>`;
-    function leyenda2D(n = 7) {
+    function leyenda2D(n = 7, conEtiquetas = true) {
       const c = 13, pad = 4, size = n * c;
       let cells = '';
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
         const x = -1 + 2 * i / (n - 1), y = 1 - 2 * j / (n - 1);
         cells += `<rect x="${pad + i * c}" y="${pad + j * c}" width="${c}" height="${c}" fill="${bivColor(y * S_FULL, x * V_FULL)}"/>`;
       }
+      const etiquetas = conEtiquetas
+        ? `<b style="color:${BIV.ss}">↗ suben los dos</b><b style="color:${BIV.sb}">↖ suben siniestros, baja velocidad</b>` +
+          `<b style="color:${BIV.bs}">↘ bajan siniestros, sube velocidad</b><b style="color:${BIV.bb}">↙ bajan los dos</b>`
+        : '';
       return `<span class="v2-biv"><svg viewBox="0 0 ${size + 2 * pad} ${size + 2 * pad}" width="${size + 2 * pad}" height="${size + 2 * pad}" aria-hidden="true">${cells}</svg>` +
-        `<span class="v2-biv-ax"><b style="color:${BIV.ss}">↗ suben los dos</b><b style="color:${BIV.sb}">↖ suben siniestros, baja velocidad</b>` +
-        `<b style="color:${BIV.bs}">↘ bajan siniestros, sube velocidad</b><b style="color:${BIV.bb}">↙ bajan los dos</b>` +
+        `<span class="v2-biv-ax">${etiquetas}` +
         `<span>→ velocidad · ↑ siniestros (frente al control). Gris: cambio pequeño.</span></span></span>`;
     }
 
@@ -490,7 +493,7 @@
           `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche).</span>`);
       } else {
         const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
-        leyenda(leyenda2D() +
+        leyenda(leyenda2D(7, false) +
           `<table class="mec-tabla" aria-label="Sitios según la dirección del cambio">
              <tr><th></th><th>Velocidad baja</th><th>Velocidad sube</th></tr>
              <tr><th>Siniestros bajan</th><td class="si" style="background:${BIV.bb}">${t.baja.baja}</td><td class="si" style="background:${BIV.bs}">${t.baja.sube}</td></tr>
