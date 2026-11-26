@@ -853,6 +853,7 @@
 
       function lado() {
         gSide.selectAll('*').remove();
+        d3.select('#xSideLeg').html('');
         if (E.lay === 'vel') {
           const m = medFr[E.fr];
           const hi = tidsSel();
@@ -912,7 +913,7 @@
           d3.select('#xSideSub').text(`Qué porcentaje de las personas heridas o muertas eran ${CAT_PLURAL[c]}, antes (${fmtMes(actores.antes[0])}–${fmtMes(actores.antes[1])}) y después (${fmtMes(actores.despues[0])}–${fmtMes(actores.despues[1])}).`);
           const s = E.sel && E.sel.tipo === 'sitio' ? sitioDe(E.sel.id) : null;
           const xsS = s ? datoSitio(s) : null;
-          const series = [['Cerca', cA, cD, COL.acc, 3.5], ['Resto', kA, kD, COL.ctrl, 2.2]];
+          const series = [['Cerca de cámaras', cA, cD, COL.acc, 3.5], ['Resto de la ciudad', kA, kD, COL.ctrl, 2.2]];
           if (xsS && xsS.a.v != null && xsS.b.v != null) series.push([s.sitio, xsS.a.v, xsS.b.v, COL.ink, 2.5]);
           const vals = series.flatMap(d => [d[1], d[2]]).filter(v => v != null);
           const y = d3.scaleLinear().domain([Math.max(0, d3.min(vals) - 4), d3.max(vals) + 4]).range([SH - 26, 26]);
@@ -920,13 +921,32 @@
           gSide.append('text').attr('class', 'ax').attr('x', xa).attr('y', 14).attr('text-anchor', 'middle').text('Antes');
           gSide.append('text').attr('class', 'ax').attr('x', xd).attr('y', 14).attr('text-anchor', 'middle').text('Después');
           [xa, xd].forEach(x => gSide.append('line').attr('x1', x).attr('x2', x).attr('y1', 22).attr('y2', SH - 20).attr('stroke', COL.line));
-          series.forEach(([nom, a, d, col, w], i) => {
+          // Leyenda de color aparte de los valores, para que el nombre no se pegue a otro cuando los puntos quedan cerca
+          const legFil = d3.select('#xSideLeg');
+          series.forEach(([nom, , , col]) => {
+            legFil.append('span').attr('class', 'mec-sw').html(`<i style="background:${col}"></i>${nom}`);
+          });
+          series.forEach(([, a, d, col, w], i) => {
             gSide.append('line').attr('x1', xa).attr('x2', xd).attr('y1', y(a)).attr('y2', y(d)).attr('stroke', col).attr('stroke-width', w)
               .attr('stroke-dasharray', i === 2 ? '5 4' : null);
             gSide.append('circle').attr('cx', xa).attr('cy', y(a)).attr('r', 4).attr('fill', col);
             gSide.append('circle').attr('cx', xd).attr('cy', y(d)).attr('r', 4).attr('fill', col);
-            gSide.append('text').attr('class', 'ax').attr('x', xa - 8).attr('y', y(a) + 4).attr('text-anchor', 'end').text(`${nom} ${pct(a)}`);
-            gSide.append('text').attr('class', 'labb').attr('x', xd + 8).attr('y', y(d) + 4).text(pct(d));
+          });
+          // Separa las etiquetas de valor cuando dos puntos quedan muy cerca en y, para que no se superpongan
+          function colocar(ys) {
+            const orden = ys.map((y0, i) => ({ y0, i })).sort((p, q) => p.y0 - q.y0);
+            const MIN = 14;
+            for (let k = 1; k < orden.length; k++) {
+              if (orden[k].y0 - orden[k - 1].y0 < MIN) orden[k].y0 = orden[k - 1].y0 + MIN;
+            }
+            const out = []; orden.forEach(o => { out[o.i] = o.y0; });
+            return out;
+          }
+          const yaLbl = colocar(series.map(([, a]) => y(a)));
+          const ydLbl = colocar(series.map(([, , d]) => y(d)));
+          series.forEach(([, a, d, col], i) => {
+            gSide.append('text').attr('class', 'ax').attr('x', xa - 8).attr('y', yaLbl[i] + 4).attr('text-anchor', 'end').text(pct(a));
+            gSide.append('text').attr('class', 'labb').attr('x', xd + 8).attr('y', ydLbl[i] + 4).text(pct(d));
           });
           const filas = sitios.map(s => ({ s, x: datoSitio(s) })).filter(o => o.x.v != null);
           const bajan = filas.filter(o => o.x.v <= -2).length, suben = filas.filter(o => o.x.v >= 2).length;

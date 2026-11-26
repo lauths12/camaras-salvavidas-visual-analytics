@@ -49,6 +49,10 @@
 .v2-biv-ax{display:grid;gap:2px;font-size:11px;line-height:1.25}
 .v2-biv-ax b{font-weight:700}
 .v2-biv-ax span{color:var(--muted)}
+.xside-leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink2)}
+.xside-leg:empty{display:none}
+.xside-leg .mec-sw{display:inline-flex;align-items:center;gap:6px}
+.xside-leg .mec-sw i{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none}
 .v2-biv-stack{display:grid;gap:7px;flex-basis:100%}
 .v2-biv-stack .v2-biv-ax{gap:4px}
 .v2-biv-stack .v2-biv-ax span{padding-top:5px;border-top:1px solid var(--line)}
