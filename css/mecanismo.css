@@ -37,7 +37,7 @@
 
 /* Scrollytelling: gráfica sticky a la izquierda, pasos a la derecha */
 .mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:44px;align-items:start}
-.mec-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:16px 0}
+.mec-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;padding:64px 0 16px}
 .mec-graphic svg{width:100%;height:auto;max-height:calc(100vh - 170px)}
 .mec-graphic .seg{align-self:flex-start}
 .mec-toggle-off{visibility:hidden}
