@@ -957,7 +957,10 @@
             `<p>De ${filas.length} sitios con datos suficientes, en <b>${bajan}</b> su participación bajó 2 puntos o más frente al control y en <b>${suben}</b> subió.</p>` +
             `<p class="side-t" style="margin-top:4px">Sitios donde más cambió la participación de ${CAT_PLURAL[c]} frente al control</p>` +
             `<ul class="v2-rank">${top.slice(0, 3).map(li).join('')}${top.slice(-3).reverse().map(li).join('')}</ul>`);
-          d3.selectAll('#xSideTxt .v2-rank li').on('click', function () { seleccionar({ tipo: 'sitio', id: this.dataset.sitio }, true); });
+          d3.selectAll('#xSideTxt .v2-rank li').on('click', function () {
+            const id = this.dataset.sitio;
+            seleccionar(E.sel && E.sel.tipo === 'sitio' && E.sel.id === id ? null : { tipo: 'sitio', id }, true);
+          });
         }
       }
 
