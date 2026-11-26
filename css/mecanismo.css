@@ -60,7 +60,7 @@
 .mec-legend i.vacio{background:#fff;border-style:dashed}
 .mec-legend i.linea{width:22px;height:3px;border:0;border-radius:0}
 .mec-legend i.caja{border-radius:0;width:14px}
-.mec-legend .mec-nota{color:var(--muted)}
+.mec-legend .mec-nota{color:var(--muted);padding-top:7px;border-top:1px solid var(--line)}
 .mec-tabla{border-collapse:collapse;font-size:13px;width:auto}
 .mec-tabla th,.mec-tabla td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:center;position:static;background:none}
 .mec-tabla th{font:700 11px var(--f-disp);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
