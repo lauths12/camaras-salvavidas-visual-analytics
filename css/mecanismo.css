@@ -34,6 +34,7 @@
 
 /* Cierre */
 .mec-end{padding-top:40px;padding-bottom:80px}
+.mec-end .source{max-width:none}
 
 /* Scrollytelling: gráfica sticky a la izquierda, pasos a la derecha */
 .mec-scrolly{max-width:1280px;margin:48px auto 0;padding:0 var(--gut);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,2fr);gap:44px;align-items:start}

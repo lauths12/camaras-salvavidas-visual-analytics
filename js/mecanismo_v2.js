@@ -371,17 +371,11 @@
       document.getElementById('h-ctx').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
     });
 
-    // ----- Nota de fuentes y limitaciones -----
-    const errGeo = geo && geo.error_mediano_m ? `${nf(geo.error_mediano_m)} m` : 'unos 170 m';
+    // ----- Nota de fuentes -----
     d3.select('#mecNota').html(
       `<b>Fuentes:</b> SIGAT (siniestralidad 2018–2022), Cámaras Salvavidas Bogotá y Bitcarrier (velocidad y red vial), Datos Abiertos de Movilidad Bogotá. ` +
       `Siniestros graves = con heridos o con muertos, a ${meta.radio_m} m o menos del sitio; el control es el resto de la ciudad. ` +
-      `Antes: ${fmtMes(meta.antes[0])}–${fmtMes(meta.antes[1])}; después: ${fmtMes(meta.despues[0])}–${fmtMes(meta.despues[1])}. Las tasas son por mes porque los dos periodos no duran lo mismo. ` +
-      `<br><b>Limitaciones:</b> los siniestros de 2018 a 2021 están geocodificados desde la dirección (error mediano ${errGeo}); por eso se usa un radio de ${meta.radio_m} m. ` +
-      `Desde octubre de 2021 casi no hay datos de velocidad en los tramos con cámara, así que el "después" de velocidad es más corto que el de siniestros. ` +
-      `2020 se excluye por la cuarentena. ` +
-      `Varios sitios comparten el mismo tramo de sensor, así que los ${nf(meta.n_correlacion)} sitios de la correlación tienen solo ${V.n_tramos_distintos} combinaciones de velocidad distintas: es una señal descriptiva, no una prueba causal. ` +
-      (actores ? `En el explorador, las víctimas "antes" son de ${fmtMes(actores.antes[0])}–${fmtMes(actores.antes[1])}, porque el anuario 2018 no separa motociclistas ni ciclistas; los sitios con menos de ${MIN_VICTIMAS} víctimas en algún periodo se marcan como "pocos datos".` : '')
+      `Antes: ${fmtMes(meta.antes[0])}–${fmtMes(meta.antes[1])}; después: ${fmtMes(meta.despues[0])}–${fmtMes(meta.despues[1])}. Las tasas son por mes porque los dos periodos no duran lo mismo.`
     );
 
     // ======================================================================
