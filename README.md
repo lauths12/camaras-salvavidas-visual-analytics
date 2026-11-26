@@ -14,7 +14,6 @@ No es una prueba causal: el diseño es de diferencias simples antes/después con
 
 - **Portada y scrollytelling** (`index.html`) — recorrido guiado: cómo se mide la velocidad, qué cuenta como "sitio", y tres mapas (siniestros, velocidad, coincidencia de ambos) más un gráfico de correlación.
 - **Explorador** — mapa interactivo por tramo o por sitio, filtrable por franja horaria y tipo de víctima, con ranking de los sitios donde más cambió cada métrica.
-- **Del resultado al mecanismo** (`mecanismo.html`, `mecanismo_v2.html`) — páginas complementarias que profundizan en el mecanismo detrás del resultado.
 
 ## Capturas
 
