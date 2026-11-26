@@ -480,12 +480,12 @@
         leyenda(`<span class="mec-sw"><b>Siniestros graves frente al control:</b></span>` +
           barra(t => bivColor(t * S_FULL, null), `${fmt(-S_FULL)} % o menos`, `${fmt(S_FULL)} % o más`) +
           (hayVacios('sin') ? swVacio('pocos datos') : '') +
-          `<span class="mec-nota">Tamaño del círculo: siniestros graves por año antes de las cámaras. Los mismos colores son el eje vertical del mapa "Coinciden".</span>`);
+          `<span class="mec-nota">Tamaño del círculo: siniestros graves por año antes de las cámaras.</span>`);
       } else if (capa === 'vel') {
         leyenda(`<span class="mec-sw"><b>Velocidad p85 nocturna frente al control:</b></span>` +
           barra(t => bivColor(null, t * V_FULL), `${fmt(-V_FULL)} km/h o menos`, `${fmt(V_FULL)} km/h o más`) +
           (hayVacios('vel') ? swVacio('sin sensor cercano') : '') +
-          `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche). Los mismos colores son el eje horizontal del mapa "Coinciden".</span>`);
+          `<span class="mec-nota">Control: mediana de los tramos sin cámara (${fmt(ctrl.delta_p85_mediana, 1)} km/h de noche).</span>`);
       } else {
         const t = res.tabla_2x2 || { baja: { baja: 0, sube: 0 }, sube: { baja: 0, sube: 0 } };
         leyenda(leyenda2D() +
