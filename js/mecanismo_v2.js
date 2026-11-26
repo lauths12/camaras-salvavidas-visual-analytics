@@ -614,7 +614,7 @@
       g.append('text').attr('class', 'ax').attr('x', M.l - 4).attr('y', M.t - 16)
         .text('↑ Cambio de siniestros graves frente al control');
       const q = [
-        [M.l + 8, M.t + 44, 'start', 'Baja la velocidad · suben los siniestros', 'mec-cuad'],
+        [M.l + 120, M.t + 44, 'start', 'Baja la velocidad · suben los siniestros', 'mec-cuad'],
         [W - M.r - 8, M.t + 44, 'end', 'Suben los dos', 'mec-cuad'],
         [M.l + 8, H - M.b - 10, 'start', 'Bajan los dos', 'mec-hl'],
         [W - M.r - 8, H - M.b - 10, 'end', 'Sube la velocidad · bajan los siniestros', 'mec-cuad']
